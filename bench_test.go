@@ -2,11 +2,12 @@ package dlp
 
 import (
 	"bytes"
-	"encoding/json"
 	"io"
 	"os"
 	"strconv"
 	"testing"
+
+	"github.com/bytedance/godlp/internal/json"
 )
 
 var (

@@ -3,7 +3,6 @@ package dlp
 
 import (
 	_ "embed"
-	"encoding/json"
 	"fmt"
 	"reflect"
 	"strings"
@@ -14,6 +13,7 @@ import (
 	"github.com/bytedance/godlp/conf"
 	"github.com/bytedance/godlp/detector"
 	"github.com/bytedance/godlp/header"
+	"github.com/bytedance/godlp/internal/json"
 	"github.com/bytedance/godlp/logger"
 	"github.com/bytedance/godlp/mask"
 )

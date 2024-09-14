@@ -1,12 +1,12 @@
 package example_test
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
 
-	dlp "github.com/bytedance/godlp"
+	"github.com/bytedance/godlp"
 	"github.com/bytedance/godlp/header"
+	"github.com/bytedance/godlp/internal/json"
 	"github.com/bytedance/godlp/logger"
 )
 

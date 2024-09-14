@@ -3,7 +3,6 @@ package dlp
 
 import (
 	"bufio"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -12,8 +11,8 @@ import (
 	"unicode/utf8"
 
 	"github.com/bytedance/godlp/detector"
-
 	"github.com/bytedance/godlp/header"
+	"github.com/bytedance/godlp/internal/json"
 )
 
 // public func

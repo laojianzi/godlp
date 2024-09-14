@@ -2,10 +2,10 @@
 package dlp
 
 import (
-	"encoding/json"
 	"fmt"
 
 	"github.com/bytedance/godlp/header"
+	"github.com/bytedance/godlp/internal/json"
 )
 
 // DeIdentify detects string firstly, then return masked string and results
