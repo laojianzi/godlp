@@ -7,6 +7,7 @@ import (
 
 	dlp "github.com/bytedance/godlp"
 	"github.com/bytedance/godlp/header"
+	"github.com/bytedance/godlp/logger"
 )
 
 func dupString(src string, coefficient int) string {
@@ -23,69 +24,69 @@ func dlpDemo() {
 	// remove NewEngein() outside for loop, and one Engine Object one thread/goroutin
 	if eng, err := dlp.NewEngine(caller); err == nil {
 		eng.ApplyConfigDefault()
-		fmt.Printf("DLP %s Demo:\n\n", eng.GetVersion())
+		logger.Debugf("DLP %s Demo:\n\n", eng.GetVersion())
 		inStr := `我的邮件是abcd@abcd.com,
 18612341234是我的电话
 你家住在哪里啊? 我家住在北京市海淀区北三环西路43号,
 mac地址 06-06-06-aa-bb-cc
 收件人：张真人  手机号码：18612341234`
 		if results, err := eng.Detect(inStr); err == nil {
-			fmt.Printf("\t1. Detect( inStr: %s )\n", inStr)
+			logger.Debugf("\t1. Detect( inStr: %s )\n", inStr)
 			eng.ShowResults(results)
 		}
 		if outStr, _, err := eng.DeIdentify(inStr); err == nil {
-			fmt.Printf("\t2. DeIdentify( inStr: %s )\n", inStr)
-			fmt.Printf("\toutStr: %s\n", outStr)
+			logger.Debugf("\t2. DeIdentify( inStr: %s )\n", inStr)
+			logger.Debugf("\toutStr: %s\n", outStr)
 			// eng.ShowResults(results)
-			fmt.Println()
+			logger.Debugf("\n")
 		}
 		inStr = `18612341234`
 		if outStr, err := eng.Mask(inStr, header.CHINAPHONE); err == nil {
-			fmt.Printf("\t3. Mask( inStr: %s )\n", inStr)
-			fmt.Printf("\toutStr: %s\n", outStr)
-			fmt.Println()
+			logger.Debugf("\t3. Mask( inStr: %s )\n", inStr)
+			logger.Debugf("\toutStr: %s\n", outStr)
+			logger.Debugf("\n")
 		}
 
 		inMap := map[string]string{"nothing": "nothing", "uid": "10086", "k1": "my phone is 18612341234 and 18612341234"} // extract KV?
 
 		if results, err := eng.DetectMap(inMap); err == nil {
-			fmt.Printf("\t4. DetectMap( inMap: %+v )\n", inMap)
+			logger.Debugf("\t4. DetectMap( inMap: %+v )\n", inMap)
 			eng.ShowResults(results)
 		}
 
-		fmt.Printf("\t5. DeIdentifyMap( inMap: %+v )\n", inMap)
+		logger.Debugf("\t5. DeIdentifyMap( inMap: %+v )\n", inMap)
 		if outMap, results, err := eng.DeIdentifyMap(inMap); err == nil {
-			fmt.Printf("\toutMap: %+v\n", outMap)
+			logger.Debugf("\toutMap: %+v\n", outMap)
 			eng.ShowResults(results)
-			fmt.Println()
+			logger.Debugf("\n")
 		}
 
 		inJSON := `{"objList":[{"uid":"10086"},{"uid":"[\"aaaa\",\"bbbb\"]"}]}`
 
 		if results, err := eng.DetectJSON(inJSON); err == nil {
-			fmt.Printf("\t6. DetectJSON( inJSON: %s )\n", inJSON)
+			logger.Debugf("\t6. DetectJSON( inJSON: %s )\n", inJSON)
 			eng.ShowResults(results)
 
 			if outJSON, err := eng.DeIdentifyJSONByResult(inJSON, results); err == nil {
-				fmt.Printf("\t7. DeIdentifyJSONByResult( inJSON: %s , results: %v )\n", inJSON, results)
-				fmt.Printf("\toutJSON: %s\n", outJSON)
+				logger.Debugf("\t7. DeIdentifyJSONByResult( inJSON: %s , results: %v )\n", inJSON, results)
+				logger.Debugf("\toutJSON: %s\n", outJSON)
 				eng.ShowResults(results)
-				fmt.Println()
+				logger.Debugf("\n")
 			}
 		}
 
 		if outJSON, results, err := eng.DeIdentifyJSON(inJSON); err == nil {
-			fmt.Printf("\t7. DeIdentifyJSON( inJSON: %s )\n", inJSON)
-			fmt.Printf("\toutJSON: %s\n", outJSON)
+			logger.Debugf("\t7. DeIdentifyJSON( inJSON: %s )\n", inJSON)
+			logger.Debugf("\toutJSON: %s\n", outJSON)
 			eng.ShowResults(results)
-			fmt.Println()
+			logger.Debugf("\n")
 		}
 		inStr = "abcd@abcd.com"
 		maskRule := "EmailMaskRule01"
 		if outStr, err := eng.Mask(inStr, maskRule); err == nil {
-			fmt.Printf("\t8. Mask( inStr: %s , %s)\n", inStr, maskRule)
-			fmt.Printf("\toutStr: %s\n", outStr)
-			fmt.Println()
+			logger.Debugf("\t8. Mask( inStr: %s , %s)\n", inStr, maskRule)
+			logger.Debugf("\toutStr: %s\n", outStr)
+			logger.Debugf("\n")
 		}
 		// 自定义脱敏，邮箱用户名保留首尾各一个字符，保留所有域名
 		eng.RegisterMasker("EmailMaskRule02", func(in string) (string, error) {
@@ -109,17 +110,17 @@ mac地址 06-06-06-aa-bb-cc
 		inStr = "abcd@abcd.com"
 		maskRule = "EmailMaskRule02"
 		if outStr, err := eng.Mask(inStr, maskRule); err == nil {
-			fmt.Printf("\t9. Mask( inStr: %s , %s)\n", inStr, maskRule)
-			fmt.Printf("\toutStr: %s\n", outStr)
-			fmt.Println()
+			logger.Debugf("\t9. Mask( inStr: %s , %s)\n", inStr, maskRule)
+			logger.Debugf("\toutStr: %s\n", outStr)
+			logger.Debugf("\n")
 		}
 
 		inStr = "loginfo:[ uid:10086, phone:18612341234]"
 		if outStr, results, err := eng.DeIdentify(inStr); err == nil {
-			fmt.Printf("\t10. Detect( inStr: %s )\n", inStr)
+			logger.Debugf("\t10. Detect( inStr: %s )\n", inStr)
 			eng.ShowResults(results)
-			fmt.Printf("\toutStr: %s\n", outStr)
-			fmt.Println()
+			logger.Debugf("\toutStr: %s\n", outStr)
+			logger.Debugf("\n")
 		}
 		type EmailType string
 		// 需要递归的结构体，需要填 `mask:"DEEP"` 才会递归脱敏
@@ -157,22 +158,22 @@ mac地址 06-06-06-aa-bb-cc
 		}
 		inPtr := &inObj
 		inObj.NULLPtr = inPtr
-		fmt.Printf("\t11. MaskStruct( inPtr: %+v, Extinfo: %+v)\n", inPtr, *(inPtr.Extinfo))
+		logger.Debugf("\t11. MaskStruct( inPtr: %+v, Extinfo: %+v)\n", inPtr, *(inPtr.Extinfo))
 		// MaskStruct 参数必须是pointer, 才能修改struct 内部元素
 		if outPtr, err := eng.MaskStruct(inPtr); err == nil {
-			fmt.Printf("\toutObj: %+v, Extinfo:%+v\n", outPtr, inObj.Extinfo)
-			fmt.Printf("\t\t EmailPtrSlice:\n")
+			logger.Debugf("\toutObj: %+v, Extinfo:%+v\n", outPtr, inObj.Extinfo)
+			logger.Debugf("\t\t EmailPtrSlice:\n")
 			for i, ePtr := range inObj.EmailPtrSlice {
-				fmt.Printf("\t\t\t[%d] = %s\n", i, ePtr.Val)
+				logger.Debugf("\t\t\t[%d] = %s\n", i, ePtr.Val)
 			}
-			fmt.Println()
+			logger.Debugf("\n")
 		} else {
-			fmt.Println(err.Error())
+			logger.Debugf("%s\n", err.Error())
 		}
-		// fmt.Println(eng.GetDefaultConf())
+		// logger.Debugf("%s\n", eng.GetDefaultConf())
 		eng.Close()
 	} else {
-		fmt.Println("[dlp] NewEngine error: ", err.Error())
+		logger.Debugf("[dlp] NewEngine error: %s\n", err.Error())
 	}
 }
 

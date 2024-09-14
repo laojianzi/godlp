@@ -13,6 +13,7 @@ import (
 	"github.com/bytedance/godlp/conf"
 	"github.com/bytedance/godlp/detector"
 	"github.com/bytedance/godlp/header"
+	"github.com/bytedance/godlp/logger"
 	"github.com/bytedance/godlp/mask"
 )
 
@@ -78,7 +79,6 @@ func NewEngine(callerID string) (header.EngineAPI, error) {
 	eng.callerID = callerID
 	eng.detectorMap = make(map[int32]detector.API)
 	eng.maskerMap = make(map[string]mask.API)
-
 	return eng, nil
 }
 
@@ -105,12 +105,12 @@ func (I *Engine) Close() {
 // 打印识别结果
 func (I *Engine) ShowResults(results []*header.DetectResult) {
 	defer I.recoveryImpl()
-	fmt.Println()
-	fmt.Printf("\tTotal Results: %d\n", len(results))
+	logger.Debugf("\n")
+	logger.Debugf("\tTotal Results: %d\n", len(results))
 	for i, item := range results {
-		fmt.Printf("Result[%d]: %+v\n", i, *item)
+		logger.Debugf("Result[%d]: %+v\n", i, *item)
 	}
-	fmt.Println()
+	logger.Debugf("\n")
 }
 
 // GetVersion return DLP SDK version
@@ -142,7 +142,7 @@ func (I *Engine) NewLogProcessor() header.Processor {
 		if logCut {
 			newLog += DefLimitError
 		}
-		// fmt.Printf("LogProcessor rawLog: %s, kvs: %+v\n", rawLog, kvs)
+		// logger.Debugf("LogProcessor rawLog: %s, kvs: %+v\n", rawLog, kvs)
 		sz := len(kvs)
 		// k1,v1,k2,v2,...
 		if sz%2 != 0 {
@@ -189,9 +189,9 @@ func (I *Engine) ShowDlpConf() error {
 	confObj := *I.confObj
 	out, err := yaml.Marshal(confObj)
 	if err == nil {
-		fmt.Println("====godlp conf start====")
-		fmt.Println(string(out))
-		fmt.Println("====godlp conf end====")
+		logger.Debugf("====godlp conf start====\n")
+		logger.Debugf("%s\n", string(out))
+		logger.Debugf("====godlp conf end====\n")
 		return nil
 	} else {
 		return err

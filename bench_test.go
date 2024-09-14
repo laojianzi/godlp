@@ -3,7 +3,6 @@ package dlp
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io"
 	"os"
 	"strconv"
@@ -38,7 +37,11 @@ func BenchmarkEngine_ApplyConfigDefault(b *testing.B) {
 }
 
 func BenchmarkEngine_DeIdentify1k(b *testing.B) {
-	text := Read("./testcases/test_1k.txt")
+	text, err := Read("./testcases/test_1k.txt")
+	if err != nil {
+		b.Fatal(err)
+	}
+
 	eng, err := NewEngine(CallerSys)
 	if err != nil {
 		b.Fatal(err)
@@ -62,7 +65,11 @@ func BenchmarkEngine_DeIdentify1k(b *testing.B) {
 }
 
 func BenchmarkEngine_DeIdentify10k(b *testing.B) {
-	src := Read("./testcases/test_1k.txt")
+	src, err := Read("./testcases/test_1k.txt")
+	if err != nil {
+		b.Fatal(err)
+	}
+
 	text := dupString(src, 10)
 	eng, err := NewEngine(CallerSys)
 	if err != nil {
@@ -87,7 +94,11 @@ func BenchmarkEngine_DeIdentify10k(b *testing.B) {
 }
 
 func BenchmarkEngine_DeIdentify100k(b *testing.B) {
-	src := Read("./testcases/test_1k.txt")
+	src, err := Read("./testcases/test_1k.txt")
+	if err != nil {
+		b.Fatal(err)
+	}
+
 	text := dupString(src, 100)
 	eng, err := NewEngine(CallerSys)
 	if err != nil {
@@ -112,7 +123,11 @@ func BenchmarkEngine_DeIdentify100k(b *testing.B) {
 }
 
 func BenchmarkEngine_DeIdentify1m(b *testing.B) {
-	src := Read("./testcases/test_1k.txt")
+	src, err := Read("./testcases/test_1k.txt")
+	if err != nil {
+		b.Fatal(err)
+	}
+
 	text := dupString(src, 1000)
 	eng, err := NewEngine(CallerSys)
 	if err != nil {
@@ -137,7 +152,11 @@ func BenchmarkEngine_DeIdentify1m(b *testing.B) {
 }
 
 func BenchmarkEngine_DeIdentifyJSON1k(b *testing.B) {
-	text := Read("./testcases/test_json_1k.txt")
+	text, err := Read("./testcases/test_json_1k.txt")
+	if err != nil {
+		b.Fatal(err)
+	}
+
 	eng, err := NewEngine(CallerSys)
 	if err != nil {
 		b.Fatal(err)
@@ -157,7 +176,11 @@ func BenchmarkEngine_DeIdentifyJSON1k(b *testing.B) {
 }
 
 func BenchmarkEngine_DeIdentifyJSON10k(b *testing.B) {
-	src := Read("./testcases/test_json_1k.txt")
+	src, err := Read("./testcases/test_json_1k.txt")
+	if err != nil {
+		b.Fatal(err)
+	}
+
 	text, err := dupJson(src, 10)
 	if err != nil {
 		b.Fatal(err)
@@ -180,7 +203,11 @@ func BenchmarkEngine_DeIdentifyJSON10k(b *testing.B) {
 	}
 }
 func BenchmarkEngine_DeIdentifyJSON100k(b *testing.B) {
-	src := Read("./testcases/test_json_1k.txt")
+	src, err := Read("./testcases/test_json_1k.txt")
+	if err != nil {
+		b.Fatal(err)
+	}
+
 	text, err := dupJson(src, 100)
 	eng, err := NewEngine(CallerSys)
 	if err != nil {
@@ -200,7 +227,11 @@ func BenchmarkEngine_DeIdentifyJSON100k(b *testing.B) {
 	}
 }
 func BenchmarkEngine_DeIdentifyJSON1m(b *testing.B) {
-	src := Read("./testcases/test_json_1k.txt")
+	src, err := Read("./testcases/test_json_1k.txt")
+	if err != nil {
+		b.Fatal(err)
+	}
+
 	text, err := dupJson(src, 1000)
 	if err != nil {
 		b.Fatal(err)
@@ -223,14 +254,6 @@ func BenchmarkEngine_DeIdentifyJSON1m(b *testing.B) {
 	}
 }
 
-func check(e error) {
-	if e != nil {
-		fmt.Println(e.Error())
-		// panic(e)
-
-	}
-}
-
 /**
  * 判断文件是否存在  存在返回 true 不存在返回false
  */
@@ -243,20 +266,18 @@ func checkFileIsExist(filename string) bool {
 }
 
 // 读取到file中，再利用ioutil将file直接读取到[]byte中, 这是最优
-func Read(filepath string) string {
+func Read(filepath string) (string, error) {
 	f, err := os.Open(filepath)
 	if err != nil {
-		fmt.Println("read file fail", err)
-		return ""
+		return "", err
 	}
 	defer f.Close()
 
 	fd, err := io.ReadAll(f)
 	if err != nil {
-		fmt.Println("read to fd fail", err)
-		return ""
+		return "", err
 	}
-	return string(fd)
+	return string(fd), nil
 }
 
 func dupString(src string, coefficient int) string {

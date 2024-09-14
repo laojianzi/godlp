@@ -11,7 +11,7 @@ import (
 
 	"github.com/bytedance/godlp/detector"
 	"github.com/bytedance/godlp/header"
-	"github.com/bytedance/godlp/log"
+	"github.com/bytedance/godlp/logger"
 	"github.com/bytedance/godlp/mask"
 )
 
@@ -101,10 +101,10 @@ func (I *Engine) isDebugMode() bool {
 // in release mode, log level is ERROR and log message will be printed into stderr
 func (I *Engine) initLogger() error {
 	if I.isDebugMode() {
-		// log.SetLevel(0)
-		log.Debugf("DLP@%s run in debug mode", I.Version)
+		// logger.SetLevel(0)
+		logger.Debugf("DLP@%s run in debug mode", I.Version)
 	} else { // release mode
-		// log.SetLevel(log.LevelError)
+		// logger.SetLevel(log.LevelError)
 	}
 	return nil
 }
@@ -129,7 +129,7 @@ func (I *Engine) loadMaskWorker() error {
 		if obj, err := mask.NewWorker(rule, I); err == nil {
 			ruleName := obj.GetRuleName()
 			if old, ok := I.maskerMap[ruleName]; ok {
-				log.Errorf("ruleName: %s, error: %s", old.GetRuleName(), header.ErrLoadMaskNameConflict.Error())
+				logger.Errorf("ruleName: %s, error: %s", old.GetRuleName(), header.ErrLoadMaskNameConflict.Error())
 			} else {
 				I.maskerMap[ruleName] = obj
 			}
@@ -215,7 +215,7 @@ func (I *Engine) fillDetectorMap() error {
 			I.detectorMap[ruleID] = obj
 			fullSet[ruleID] = false
 		} else {
-			log.Errorf(err.Error())
+			logger.Errorf(err.Error())
 		}
 	}
 	// if EnableRules is empty, all rules are loaded
@@ -257,7 +257,7 @@ func (I *Engine) disableRulesImpl(ruleList []int32) error {
 		}
 	}
 	if I.isDebugMode() {
-		log.Debugf("Total %d Rule loaded", total)
+		logger.Debugf("Total %d Rule loaded", total)
 	}
 	return nil
 }

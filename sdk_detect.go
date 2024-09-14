@@ -138,7 +138,7 @@ func (I *Engine) detectBytes(line []byte) ([]*header.DetectResult, error) {
 			results = append(results, res...)
 		}
 	}
-	// fmt.Printf("check rule:%d, len:%d, cast:%v\n", len(I.detectorMap), len(line), time.Since(start))
+	// logger.Debugf("check rule:%d, len:%d, cast:%v\n", len(I.detectorMap), len(line), time.Since(start))
 
 	// the last error will be returned
 	return results, retErr
@@ -174,7 +174,7 @@ func (I *Engine) extractKVList(line []byte) []*detector.KVItem {
 				right, vPos = firstToken(line, i+width)
 				isFound = true
 			}
-			// log.Debugf("%s [%d,%d) = %s [%d,%d)", left, kPos[0], kPos[1], right, vPos[0], vPos[1])
+			// logger.Debugf("%s [%d,%d) = %s [%d,%d)", left, kPos[0], kPos[1], right, vPos[0], vPos[1])
 			_ = kPos
 			if len(left) != 0 && len(right) != 0 {
 				loLeft := strings.ToLower(left)
@@ -391,7 +391,7 @@ func (I *Engine) maskResults(results []*header.DetectResult) []*header.DetectRes
 			if maskWorker, ok := I.maskerMap[maskRuleName]; ok {
 				_ = maskWorker.MaskResult(res)
 			} else { // Not Found
-				// log.Errorf(fmt.Errorf("MaskRuleName: %s, Error: %w", maskRuleName, header.ErrMaskRuleNotfound).Error())
+				// logger.Errorf(fmt.Errorf("MaskRuleName: %s, Error: %w", maskRuleName, header.ErrMaskRuleNotfound).Error())
 				res.MaskText = res.Text
 			}
 		}
@@ -406,7 +406,7 @@ func (I *Engine) detectMapImpl(inputMap map[string]string) ([]*header.DetectResu
 		if obj != nil {
 			res, err := obj.DetectMap(inputMap)
 			if err != nil {
-				// log.Errorf(err.Error())
+				// logger.Errorf(err.Error())
 			}
 			results = append(results, res...)
 		}
@@ -436,7 +436,7 @@ func getMax(x, y int) int {
 func (I *Engine) detectJSONImpl(jsonText string) (retResults []*header.DetectResult, kvMap map[string]string, retErr error) {
 	var jsonObj interface{}
 	if err := json.Unmarshal([]byte(jsonText), &jsonObj); err == nil {
-		// fmt.Printf("%+v\n", jsonObj)
+		// logger.Debugf("%+v\n", jsonObj)
 		kvMap = make(map[string]string)
 		I.dfsJSON("", &jsonObj, kvMap, false)
 		retResults, retErr = I.detectMapImpl(kvMap)

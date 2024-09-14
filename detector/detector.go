@@ -131,14 +131,14 @@ func (I *Detector) DetectBytes(inputBytes []byte) ([]*header.DetectResult, error
 		if ret, err := I.regexDetectBytes(reObj, inputBytes); err == nil {
 			results = append(results, ret...)
 		} else {
-			// log.Errorf(err.Error())
+			// logger.Errorf(err.Error())
 		}
 	}
 	for _, item := range I.VDict {
 		if ret, err := I.dictDetectBytes([]byte(item), inputBytes); err == nil {
 			results = append(results, ret...)
 		} else {
-			// log.Errorf(err.Error())
+			// logger.Errorf(err.Error())
 		}
 	}
 	results = I.filter(results)
@@ -297,7 +297,7 @@ func (I *Detector) preCompile(reList []string) []*regexp.Regexp {
 		if re, err := regexp.Compile(reStr); err == nil {
 			list = append(list, re)
 		} else {
-			// log.Errorf("Regex %s ,error: %w", reStr, err)
+			// logger.Errorf("Regex %s ,error: %w", reStr, err)
 		}
 	}
 	return list

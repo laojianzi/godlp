@@ -108,10 +108,10 @@ func (I *Engine) NewDIYMaskWorker(maskName string, maskFunc func(string) (string
 // maskStructImpl will mask a struct object by tag mask info
 // 根据tag mask里定义的脱敏规则对struct object直接脱敏, 会修改obj本身，传入指针，返回指针
 func (I *Engine) maskStructImpl(inPtr interface{}, level int) (interface{}, error) {
-	// log.Errorf("[DLP] level:%d, maskStructImpl: %+v", level, inPtr)
+	// logger.Errorf("[DLP] level:%d, maskStructImpl: %+v", level, inPtr)
 	if level <= 0 { // call deep check
-		// log.Errorf("[DLP] !call deep loop detected!")
-		// log.Errorf("obj: %+v", inPtr)
+		// logger.Errorf("[DLP] !call deep loop detected!")
+		// logger.Errorf("obj: %+v", inPtr)
 		return inPtr, nil
 	}
 	valPtr := reflect.ValueOf(inPtr)
@@ -148,12 +148,12 @@ func (I *Engine) maskStructImpl(inPtr interface{}, level int) (interface{}, erro
 						}
 					case reflect.Struct:
 						if valField.CanAddr() {
-							// log.Errorf("[DLP] Struct, %s", typeField.Name)
+							// logger.Errorf("[DLP] Struct, %s", typeField.Name)
 							_, retErr = I.maskStructImpl(valField.Addr().Interface(), level-1)
 						}
 					case reflect.Ptr:
 						if !valField.IsNil() {
-							// log.Errorf("[DLP] Ptr, %s", typeField.Name)
+							// logger.Errorf("[DLP] Ptr, %s", typeField.Name)
 							_, retErr = I.maskStructImpl(valField.Interface(), level-1)
 						}
 					case reflect.Interface:
@@ -193,12 +193,12 @@ func (I *Engine) maskStructImpl(inPtr interface{}, level int) (interface{}, erro
 								}
 							} else if item.Kind() == reflect.Ptr {
 								if !item.IsNil() {
-									// log.Errorf("[DLP] Ptr, %s", item.Type().Name())
+									// logger.Errorf("[DLP] Ptr, %s", item.Type().Name())
 									_, retErr = I.maskStructImpl(item.Interface(), level-1)
 								}
 							} else if item.Kind() == reflect.Struct {
 								if item.CanAddr() {
-									// log.Errorf("[DLP] Struct, %s", item.Type().Name())
+									// logger.Errorf("[DLP] Struct, %s", item.Type().Name())
 									_, retErr = I.maskStructImpl(item.Addr().Interface(), level-1)
 								}
 							}

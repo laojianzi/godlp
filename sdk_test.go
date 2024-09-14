@@ -8,7 +8,7 @@ import (
 	"gopkg.in/yaml.v2"
 
 	"github.com/bytedance/godlp/header"
-	"github.com/bytedance/godlp/log"
+	"github.com/bytedance/godlp/logger"
 )
 
 type RuleTestItem struct {
@@ -144,7 +144,7 @@ func TestDeIdentifyJSONByResult(t *testing.T) {
 
 func setup() {
 	runtime.GOMAXPROCS(1)
-	log.SetLevel(log.LevelError)
+	logger.SetLevel(logger.LevelError)
 }
 
 func shutdown() {
