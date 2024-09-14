@@ -29,7 +29,7 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 func TestRule(t *testing.T) {
-	testPath := "./test/rule_test.yml"
+	testPath := "./testdata/rule_test.yml"
 	if buf, err := os.ReadFile(testPath); err == nil {
 		ruleTestPtr := new(RuleTest)
 		if err := yaml.Unmarshal(buf, ruleTestPtr); err == nil {

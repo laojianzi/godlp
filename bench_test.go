@@ -37,7 +37,7 @@ func BenchmarkEngine_ApplyConfigDefault(b *testing.B) {
 }
 
 func BenchmarkEngine_DeIdentify1k(b *testing.B) {
-	text, err := Read("./testcases/test_1k.txt")
+	text, err := Read("./testdata/test_1k.txt")
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -65,7 +65,7 @@ func BenchmarkEngine_DeIdentify1k(b *testing.B) {
 }
 
 func BenchmarkEngine_DeIdentify10k(b *testing.B) {
-	src, err := Read("./testcases/test_1k.txt")
+	src, err := Read("./testdata/test_1k.txt")
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -94,7 +94,7 @@ func BenchmarkEngine_DeIdentify10k(b *testing.B) {
 }
 
 func BenchmarkEngine_DeIdentify100k(b *testing.B) {
-	src, err := Read("./testcases/test_1k.txt")
+	src, err := Read("./testdata/test_1k.txt")
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -123,7 +123,7 @@ func BenchmarkEngine_DeIdentify100k(b *testing.B) {
 }
 
 func BenchmarkEngine_DeIdentify1m(b *testing.B) {
-	src, err := Read("./testcases/test_1k.txt")
+	src, err := Read("./testdata/test_1k.txt")
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -152,7 +152,7 @@ func BenchmarkEngine_DeIdentify1m(b *testing.B) {
 }
 
 func BenchmarkEngine_DeIdentifyJSON1k(b *testing.B) {
-	text, err := Read("./testcases/test_json_1k.txt")
+	text, err := Read("./testdata/test_json_1k.txt")
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -176,7 +176,7 @@ func BenchmarkEngine_DeIdentifyJSON1k(b *testing.B) {
 }
 
 func BenchmarkEngine_DeIdentifyJSON10k(b *testing.B) {
-	src, err := Read("./testcases/test_json_1k.txt")
+	src, err := Read("./testdata/test_json_1k.txt")
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -203,7 +203,7 @@ func BenchmarkEngine_DeIdentifyJSON10k(b *testing.B) {
 	}
 }
 func BenchmarkEngine_DeIdentifyJSON100k(b *testing.B) {
-	src, err := Read("./testcases/test_json_1k.txt")
+	src, err := Read("./testdata/test_json_1k.txt")
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -227,7 +227,7 @@ func BenchmarkEngine_DeIdentifyJSON100k(b *testing.B) {
 	}
 }
 func BenchmarkEngine_DeIdentifyJSON1m(b *testing.B) {
-	src, err := Read("./testcases/test_json_1k.txt")
+	src, err := Read("./testdata/test_json_1k.txt")
 	if err != nil {
 		b.Fatal(err)
 	}
