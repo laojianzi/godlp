@@ -1,5 +1,9 @@
 # godlp
 
+fork from https://github.com/bytedance/godlp
+
+Actually this package does not have AI.
+
 # 一、简介
 
 为了保障企业的数据安全和隐私安全，godlp 提供了一系列针对敏感数据的识别和处置方案，
@@ -17,15 +21,17 @@ godlp 能够广泛支持结构化（JSON数据、KV数据、golang map）和非�
 
 ## 1. 敏感数据自动发现
    DLP 内置多种敏感数据识别规则，能对原始数据进行敏感类型识别，确保敏感信息能被妥善处理。
+
 ## 2. 敏感数据脱敏处理
    DLP 支持多种脱敏算法，业务可以根据需求对敏感数据进行不同的脱敏处理。
+
 ## 3. 业务自定义配置选项
    除默认的敏感信息识别和处理规则外，业务可以根据实际情况，配置自定义的YAML规则，DLP 能够根据传入的配置选项，完成相应的数据处理任务。
 
 # 三、接入方式
 
 ```shell
-go get github.com/bytedance/godlp@latest
+go get github.com/laojianzi/godlp@latest
 ```
 
 示例代码在 `example/example_test.go` 文件中
@@ -40,7 +46,7 @@ make bench
 
 ## API 描述
 
-dlpheader定义了 godlp SDK需要的数据结构，常量定义等。godlp SDK主要提供了以下API进行敏感信息识别和脱敏。
+header 定义了 godlp SDK需要的数据结构，常量定义等。godlp SDK主要提供了以下API进行敏感信息识别和脱敏。
 
 1. ApplyConfig(conf string) error
 - ApplyConfig by configuration content
@@ -62,12 +68,12 @@ dlpheader定义了 godlp SDK需要的数据结构，常量定义等。godlp SDK�
 - DetectJSON detects json string
 - 对json string 进行敏感信息识别
 
-6. Deidentify(inputText string) (string, []*DetectResult, error)
-- Deidentify detects string firstly, then return masked string and results
+6. DeIdentify(inputText string) (string, []*DetectResult, error)
+- DeIdentify detects string firstly, then return masked string and results
 - 对string先识别，然后按规则进行打码
 
-7. DeidentifyMap(inputMap map[string]string) (map[string]string, []*DetectResult, error)
-- DeidentifyMap detects KV map firstly,then return masked map
+7. DeIdentifyMap(inputMap map[string]string) (map[string]string, []*DetectResult, error)
+- DeIdentifyMap detects KV map firstly,then return masked map
 - 对map[string]string先识别，然后按规则进行打码
 
 8. ShowResults(resultArray []*DetectResult)
@@ -90,12 +96,12 @@ dlpheader定义了 godlp SDK需要的数据结构，常量定义等。godlp SDK�
 - Register DIY Masker
 - 注册自定义打码函数
 
-13. NewLogProcesser() logs.Processor
-- NewLogProcesser create a log processer for the package logs
+13. NewLogProcessor() logs.Processor
+- NewLogProcessor create a log processor for the package logs
 - 日志脱敏处理函数
 
 14. MaskStruct(inObj interface{}) (interface{}, error)
-- MaskStruct will mask a strcut object by tag mask info
+- MaskStruct will mask a struct object by tag mask info
 - 根据tag mask里定义的脱敏规则对struct object直接脱敏
 
 # 四、规则文件
@@ -112,7 +118,7 @@ config 文件以yaml格式为准，整体分为: `Global`,`MaskRules`,`Rules` �
 
 # 五、架构
 
-godlp 以 Engine 结构为主，通过Engine对象来实现 EngineAPI 接口，直接实现的接口以`sdk.go`,`sdkdeidentify.go`,`sdkdetect.go`和`sdkmask.go`为主。对于deidentify和mask操作，会继续调用子目录下的`detector`,`mask`子模块。
+godlp 以 Engine 结构为主，通过Engine对象来实现 EngineAPI 接口，直接实现的接口以`sdk.go`,`sdkdeidentify.go`,`sdkdetect.go`和`sdkmask.go`为主。对于deIdentify和mask操作，会继续调用子目录下的`detector`,`mask`子模块。
 
 ## 5.1 文件说明
 
@@ -122,7 +128,7 @@ godlp 以 Engine 结构为主，通过Engine对象来实现 EngineAPI 接口，�
 
 3. sdk_config.go: 实现配置相关的接口，例如ApplyConfig()
 
-4. sdk_deidentify.go: 实现脱敏相关的接口。
+4. sdk_de_identify.go: 实现脱敏相关的接口。
 
 5. sdk_detect.go: 实现敏感信息检测接口。
 
@@ -132,21 +138,27 @@ godlp 以 Engine 结构为主，通过Engine对象来实现 EngineAPI 接口，�
 
 8. conf.yml: 内置的默认配置文件，含DLP维护的规则。
 
-9. ~~bindata.go: go generate生成的数据文件，包含conf.yml~~ 改用 embed
+9. ~~bindata.go: go generate生成的数据文件，包含conf.yml~~ 在 sdk.go 中 embed conf.yml
 
 ## 5.2 子目录说明
 
-1. conf: 实现DlpConf结构，处理配置文件。
+1. conf: 实现 DlpConf 结构，处理配置文件。
 
 2. detector: 敏感信息检测逻辑的内部实现。
 
-3. errlist: 报错信息列表。
+3. example: 提供使用示例。
 
-4. mask: 直接脱敏的内部实现。
+4. header: dlp sdk 定义的接口头文件。
 
-5. util: 辅助功能实现。
+5. internal: 内部使用的自定义包
 
-6. dlpheader: dlp sdk 定义的接口头文件。
+6. logger: 提供自定义和默认的日志输出能力
+
+7. mask: 直接脱敏的内部实现。
+
+8. testdata: 存放测试相关的文件数据
+
+9. tools: shell script 等工具。
 
 # 六、致谢
 

@@ -8,11 +8,11 @@ import (
 	"runtime/debug"
 	"strings"
 
-	"github.com/bytedance/godlp/detector"
-	"github.com/bytedance/godlp/header"
-	"github.com/bytedance/godlp/internal/json"
-	"github.com/bytedance/godlp/logger"
-	"github.com/bytedance/godlp/mask"
+	"github.com/laojianzi/godlp/detector"
+	"github.com/laojianzi/godlp/header"
+	"github.com/laojianzi/godlp/internal/json"
+	"github.com/laojianzi/godlp/logger"
+	"github.com/laojianzi/godlp/mask"
 )
 
 type HttpResponseBase struct {

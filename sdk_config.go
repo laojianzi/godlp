@@ -2,7 +2,7 @@
 package dlp
 
 import (
-	"github.com/bytedance/godlp/conf"
+	"github.com/laojianzi/godlp/conf"
 )
 
 // public func

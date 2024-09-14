@@ -10,9 +10,9 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/bytedance/godlp/detector"
-	"github.com/bytedance/godlp/header"
-	"github.com/bytedance/godlp/internal/json"
+	"github.com/laojianzi/godlp/detector"
+	"github.com/laojianzi/godlp/header"
+	"github.com/laojianzi/godlp/internal/json"
 )
 
 // public func

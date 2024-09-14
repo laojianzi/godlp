@@ -10,12 +10,12 @@ import (
 
 	"gopkg.in/yaml.v2"
 
-	"github.com/bytedance/godlp/conf"
-	"github.com/bytedance/godlp/detector"
-	"github.com/bytedance/godlp/header"
-	"github.com/bytedance/godlp/internal/json"
-	"github.com/bytedance/godlp/logger"
-	"github.com/bytedance/godlp/mask"
+	"github.com/laojianzi/godlp/conf"
+	"github.com/laojianzi/godlp/detector"
+	"github.com/laojianzi/godlp/header"
+	"github.com/laojianzi/godlp/internal/json"
+	"github.com/laojianzi/godlp/logger"
+	"github.com/laojianzi/godlp/mask"
 )
 
 // DefConf saves the content of conf.yaml
@@ -27,7 +27,7 @@ var DefConf string
 // outer const values
 const (
 	Version     = "v1.2.15"
-	PackageName = "github.com/bytedance/godlp"
+	PackageName = "github.com/laojianzi/godlp"
 	FullVer     = PackageName + "@" + Version
 )
 

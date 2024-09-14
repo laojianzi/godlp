@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/bytedance/godlp"
-	"github.com/bytedance/godlp/header"
-	"github.com/bytedance/godlp/internal/json"
-	"github.com/bytedance/godlp/logger"
+	"github.com/laojianzi/godlp"
+	"github.com/laojianzi/godlp/header"
+	"github.com/laojianzi/godlp/internal/json"
+	"github.com/laojianzi/godlp/logger"
 )
 
 func Example() {

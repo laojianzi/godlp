@@ -1,4 +1,4 @@
-module github.com/bytedance/godlp
+module github.com/laojianzi/godlp
 
 go 1.18
 

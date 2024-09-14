@@ -9,9 +9,9 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/bytedance/godlp/conf"
+	"github.com/laojianzi/godlp/conf"
 
-	"github.com/bytedance/godlp/header"
+	"github.com/laojianzi/godlp/header"
 )
 
 const (

@@ -7,8 +7,8 @@ import (
 
 	"gopkg.in/yaml.v2"
 
-	"github.com/bytedance/godlp/header"
-	"github.com/bytedance/godlp/logger"
+	"github.com/laojianzi/godlp/header"
+	"github.com/laojianzi/godlp/logger"
 )
 
 type RuleTestItem struct {

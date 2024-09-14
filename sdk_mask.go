@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/bytedance/godlp/header"
-	"github.com/bytedance/godlp/mask"
+	"github.com/laojianzi/godlp/header"
+	"github.com/laojianzi/godlp/mask"
 )
 
 // Mask will return masked text directly based on methodName

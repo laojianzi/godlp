@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/bytedance/godlp/internal/json"
+	"github.com/laojianzi/godlp/internal/json"
 )
 
 var (
