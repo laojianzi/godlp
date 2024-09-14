@@ -1,15 +1,16 @@
-// Package dlp sdkinternal.go implements internal API for DLP
+// Package dlp sdk internal.go implements internal API for DLP
 package dlp
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"runtime/debug"
 	"strings"
 
 	"github.com/bytedance/godlp/detector"
-	"github.com/bytedance/godlp/errlist"
+	"github.com/bytedance/godlp/header"
 	"github.com/bytedance/godlp/log"
 	"github.com/bytedance/godlp/mask"
 )
@@ -33,7 +34,7 @@ func recoveryImplStatic() {
 		if isCriticalPanic(r.(error)) {
 			panic(r)
 		} else {
-			fmt.Fprintf(os.Stderr, "%s, msg: %+v\n", errlist.ERR_PANIC.Error(), r)
+			_, _ = fmt.Fprintf(os.Stderr, "%s, msg: %+v\n", header.ErrPanic.Error(), r)
 			debug.PrintStack()
 		}
 	}
@@ -45,22 +46,15 @@ func (I *Engine) recoveryImpl() {
 		if isCriticalPanic(r.(error)) {
 			panic(r)
 		} else {
-			fmt.Fprintf(os.Stderr, "%s, msg: %+v\n", errlist.ERR_PANIC.Error(), r)
+			_, _ = fmt.Fprintf(os.Stderr, "%s, msg: %+v\n", header.ErrPanic.Error(), r)
 			debug.PrintStack()
 		}
 	}
 }
 
-// isCriticalPanic checks wheterh error is critical error
+// isCriticalPanic checks whether error is critical error
 func isCriticalPanic(r error) bool {
-	isCritical := false
-	switch r {
-	case errlist.ERR_HAS_NOT_CONFIGED:
-		isCritical = true
-	default:
-		isCritical = false
-	}
-	return isCritical
+	return errors.Is(r, header.ErrHasNotConfigured)
 }
 
 // hasClosed check whether the engine has been closed
@@ -72,20 +66,22 @@ func (I *Engine) isOnlyForLog() bool {
 	return I.isForLog
 }
 
-// hasConfiged check whether the engine has been configed
-func (I *Engine) hasConfiged() bool {
+// hasConfigured check whether the engine has been configured
+func (I *Engine) hasConfigured() bool {
 	return I.isConfigured
 }
 
 // postLoadConfig will load config object
 func (I *Engine) postLoadConfig() error {
 	if I.confObj.Global.MaxLogInput > 0 {
-		DefaultMaxLogInput = I.confObj.Global.MaxLogInput
+		DefMaxLogInput = I.confObj.Global.MaxLogInput
 	}
 	if I.confObj.Global.MaxRegexRuleID > 0 {
-		DefaultMaxRegexRuleID = I.confObj.Global.MaxRegexRuleID
+		DefMaxRegexRuleID = I.confObj.Global.MaxRegexRuleID
 	}
-	I.initLogger()
+	if err := I.initLogger(); err != nil {
+		return err
+	}
 	if err := I.loadDetector(); err != nil {
 		return err
 	}
@@ -116,22 +112,24 @@ func (I *Engine) initLogger() error {
 // loadDetector loads detectors from config
 func (I *Engine) loadDetector() error {
 	// fill detectorMap
-	I.fillDetectorMap()
+	if err := I.fillDetectorMap(); err != nil {
+		return err
+	}
 	// disable rules
 	return I.disableRulesImpl(I.confObj.Global.DisableRules)
 }
 
-// loadMaskWorker loads maskworker from config
+// loadMaskWorker loads mask worker from config
 func (I *Engine) loadMaskWorker() error {
 	maskRuleList := I.confObj.MaskRules
 	if I.maskerMap == nil {
-		I.maskerMap = make(map[string]mask.MaskAPI)
+		I.maskerMap = make(map[string]mask.API)
 	}
 	for _, rule := range maskRuleList {
-		if obj, err := mask.NewMaskWorker(rule, I); err == nil {
+		if obj, err := mask.NewWorker(rule, I); err == nil {
 			ruleName := obj.GetRuleName()
 			if old, ok := I.maskerMap[ruleName]; ok {
-				log.Errorf("ruleName: %s, error: %s", old.GetRuleName(), errlist.ERR_LOADMASK_NAME_CONFLICT.Error())
+				log.Errorf("ruleName: %s, error: %s", old.GetRuleName(), header.ErrLoadMaskNameConflict.Error())
 			} else {
 				I.maskerMap[ruleName] = obj
 			}
@@ -141,25 +139,25 @@ func (I *Engine) loadMaskWorker() error {
 }
 
 // dfsJSON walk a json object, used for DetectJSON and DeIdentifyJSON
-// in DetectJSON(), isDeIdentify is false, kvMap is write only, will store json object path and value
+// in DetectJSON(), isDeIdentify is false, kvMap is written only, will store json object path and value
 // in DeIdentifyJSON(), isDeIdentify is true, kvMap is read only, will store path and MaskText of sensitive information
 func (I *Engine) dfsJSON(path string, ptr *interface{}, kvMap map[string]string, isDeIdentify bool) interface{} {
 	path = strings.ToLower(path)
 	switch (*ptr).(type) {
 	case map[string]interface{}:
 		for k, v := range (*ptr).(map[string]interface{}) {
-			subpath := path + "/" + k
-			(*ptr).(map[string]interface{})[k] = I.dfsJSON(subpath, &v, kvMap, isDeIdentify)
+			subPath := path + "/" + k
+			(*ptr).(map[string]interface{})[k] = I.dfsJSON(subPath, &v, kvMap, isDeIdentify)
 		}
 	case []interface{}:
 		for i, v := range (*ptr).([]interface{}) {
-			subpath := ""
+			subPath := ""
 			if len(path) == 0 {
-				subpath = fmt.Sprintf("/[%d]", i)
+				subPath = fmt.Sprintf("/[%d]", i)
 			} else {
-				subpath = fmt.Sprintf("%s[%d]", path, i)
+				subPath = fmt.Sprintf("%s[%d]", path, i)
 			}
-			(*ptr).([]interface{})[i] = I.dfsJSON(subpath, &v, kvMap, isDeIdentify)
+			(*ptr).([]interface{})[i] = I.dfsJSON(subPath, &v, kvMap, isDeIdentify)
 		}
 	case string:
 		var subObj interface{}
@@ -177,8 +175,8 @@ func (I *Engine) dfsJSON(path string, ptr *interface{}, kvMap map[string]string,
 				}
 			} else { // plain text
 				if isDeIdentify {
-					if mask, ok := kvMap[path]; ok {
-						return mask
+					if kvMask, ok := kvMap[path]; ok {
+						return kvMask
 					} else {
 						return val
 					}
@@ -207,7 +205,7 @@ func (I *Engine) selectRulesForLog() error {
 func (I *Engine) fillDetectorMap() error {
 	ruleList := I.confObj.Rules
 	if I.detectorMap == nil {
-		I.detectorMap = make(map[int32]detector.DetectorAPI)
+		I.detectorMap = make(map[int32]detector.API)
 	}
 	enableRules := I.confObj.Global.EnableRules
 	fullSet := map[int32]bool{}
@@ -241,7 +239,7 @@ func (I *Engine) fillDetectorMap() error {
 // 禁用规则，原子操作，每次禁用是独立操作，不会有历史依赖
 func (I *Engine) applyDisableRules(ruleList []int32) {
 	I.confObj.Global.DisableRules = ruleList
-	I.loadDetector()
+	_ = I.loadDetector()
 }
 
 func (I *Engine) disableRulesImpl(ruleList []int32) error {

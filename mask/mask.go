@@ -10,30 +10,30 @@ import (
 	"unicode/utf8"
 
 	"github.com/bytedance/godlp/conf"
-	"github.com/bytedance/godlp/dlpheader"
-	"github.com/bytedance/godlp/errlist"
+
+	"github.com/bytedance/godlp/header"
 )
 
 const (
-	MASKTYPE_CHAR    = "CHAR"    // 用字符替换敏感信息，需要用到后面更详细的配置项。
-	MASKTYPE_TAG     = "TAG"     // 用识别和处理规则中的InfoType, 以`<InfoType>`的形式替换敏感信息。
-	MASKTYPE_REPLACE = "REPLACE" // 用Value定义的字符串，替换敏感信息，可以设定为空串，用于直接抹除。
-	MASKTYPE_ALGO    = "ALGO"    // 用Value定义的算法函数，处理敏感信息，用算法返回值替换原文，目前支持的算法有 [BASE64, MD5, CRC32]
+	TypeChar    = "CHAR"    // 用字符替换敏感信息，需要用到后面更详细的配置项。
+	TypeTag     = "TAG"     // 用识别和处理规则中的InfoType, 以`<InfoType>`的形式替换敏感信息。
+	TypeReplace = "REPLACE" // 用Value定义的字符串，替换敏感信息，可以设定为空串，用于直接抹除。
+	TypeAlgo    = "ALGO"    // 用Value定义的算法函数，处理敏感信息，用算法返回值替换原文，目前支持的算法有 [BASE64, MD5, CRC32]
 
-	MASK_ALGO_BASE64 = "BASE64"
-	MASK_ALGO_MD5    = "MD5"
-	MASK_ALGO_CRC32  = "CRC32"
+	TypeAlgoBase64 = "BASE64"
+	TypeAlgoMd5    = "MD5"
+	TypeAlgoCrc32  = "CRC32"
 
-	MASK_UNKNOWN_TAG = "UNKNOWN"
+	TypeUnknown = "UNKNOWN"
 )
 
-type MaskWorker struct {
+type Worker struct {
 	rule   conf.MaskRuleItem
-	parent dlpheader.EngineAPI
+	parent header.EngineAPI
 }
 
-type MaskAPI interface {
-	// GetRuleName return RuleName of a MaskWorker
+type API interface {
+	// GetRuleName return RuleName of a Worker
 	// 返回RuleName
 	GetRuleName() string
 	// Mask will return masked string
@@ -41,14 +41,12 @@ type MaskAPI interface {
 	Mask(string) (string, error)
 	// MaskResult will modify DetectResult.MaskText
 	// 修改DetectResult.MaskText
-	MaskResult(*dlpheader.DetectResult) error
+	MaskResult(*header.DetectResult) error
 }
 
-// public func
-
-// NewMaskWorker create MaskWorker based on MaskRule
-func NewMaskWorker(rule conf.MaskRuleItem, p dlpheader.EngineAPI) (MaskAPI, error) {
-	obj := new(MaskWorker)
+// NewWorker create Worker based on MaskRule
+func NewWorker(rule conf.MaskRuleItem, p header.EngineAPI) (API, error) {
+	obj := new(Worker)
 	// IgnoreKind
 	for _, kind := range rule.IgnoreKind {
 		switch kind {
@@ -69,17 +67,17 @@ func NewMaskWorker(rule conf.MaskRuleItem, p dlpheader.EngineAPI) (MaskAPI, erro
 	return obj, nil
 }
 
-// GetRuleName return RuleName of a MaskWorker
+// GetRuleName return RuleName of a Worker
 // 返回RuleName
-func (I *MaskWorker) GetRuleName() string {
+func (I *Worker) GetRuleName() string {
 	return I.rule.RuleName
 }
 
 // MaskResult will modify DetectResult.MaskText
 // 修改DetectResult.MaskText
-func (I *MaskWorker) MaskResult(res *dlpheader.DetectResult) error {
+func (I *Worker) MaskResult(res *header.DetectResult) error {
 	var err error
-	if strings.Compare(I.rule.MaskType, MASKTYPE_TAG) == 0 {
+	if strings.Compare(I.rule.MaskType, TypeTag) == 0 {
 		res.MaskText, err = I.maskTagImpl(res.Text, res.InfoType)
 	} else {
 		res.MaskText, err = I.Mask(res.Text)
@@ -89,43 +87,36 @@ func (I *MaskWorker) MaskResult(res *dlpheader.DetectResult) error {
 
 // Mask will return masked string
 // 返回打码后的文本
-func (I *MaskWorker) Mask(in string) (string, error) {
+func (I *Worker) Mask(in string) (string, error) {
 	out := in
-	err := fmt.Errorf("RuleName: %s, MaskType: %s , %w", I.rule.RuleName, I.rule.MaskType, errlist.ERR_MASK_NOT_SUPPORT)
+	err := fmt.Errorf("RuleName: %s, MaskType: %s , %w", I.rule.RuleName, I.rule.MaskType, header.ErrMaskNotSupport)
 	switch I.rule.MaskType {
-	case MASKTYPE_CHAR:
+	case TypeChar:
 		out, err = I.maskCharImpl(in)
-	case MASKTYPE_TAG:
+	case TypeTag:
 		out, err = I.maskStrTagImpl(in)
-	case MASKTYPE_REPLACE:
+	case TypeReplace:
 		out, err = I.maskReplaceImpl(in)
-	case MASKTYPE_ALGO:
+	case TypeAlgo:
 		out, err = I.maskAlgoImpl(in)
 	}
 	return out, err
 }
 
-// private func
-
+// base64
 const (
-	// base64
 	enterListRes = "6KGX6YGTfOi3r3zooZd86YeMfOadkXzplYd85bGvfOe7hAo="
 	midListRes   = "56S+5Yy6fOWwj+WMunzlpKfljqZ85bm/5Zy6fOWPt+alvHzljZXlhYN85Y+3fOWxgnzlrqR85oi3Cg=="
 )
 
 var (
-	enterList = make([]string, 0, 0)
-	midList   = make([]string, 0, 0)
-)
-
-func init() {
 	enterList = loadResList(enterListRes)
-	midList = loadResList(midListRes)
-}
+	midList   = loadResList(midListRes)
+)
 
 // loadResList accepts base64 string, then convert them to string list
 func loadResList(res string) []string {
-	retList := make([]string, 0, 0)
+	var retList []string
 	if decode, err := base64.StdEncoding.DecodeString(res); err == nil {
 		trim := strings.TrimSpace(string(decode))
 		retList = strings.Split(trim, "|")
@@ -134,7 +125,7 @@ func loadResList(res string) []string {
 }
 
 // maskCharImpl mask in string with char
-func (I *MaskWorker) maskCharImpl(in string) (string, error) {
+func (I *Worker) maskCharImpl(in string) (string, error) {
 	ch := byte('*') // default
 	if len(I.rule.Value) > 0 {
 		ch = I.rule.Value[0]
@@ -185,28 +176,28 @@ func (I *MaskWorker) maskCharImpl(in string) (string, error) {
 }
 
 // maskTagImpl mask with the tag of in string
-func (I *MaskWorker) maskTagImpl(in string, infoType string) (string, error) {
+func (I *Worker) maskTagImpl(_ string, infoType string) (string, error) {
 	return fmt.Sprintf("<%s>", infoType), nil
 }
 
 // maskReplaceImpl replace with rule.Value
-func (I *MaskWorker) maskReplaceImpl(in string) (string, error) {
+func (I *Worker) maskReplaceImpl(_ string) (string, error) {
 	return I.rule.Value, nil
 }
 
-// maskStrTagImpl first DeIdentify to get info type, then mask with infotype
-func (I *MaskWorker) maskStrTagImpl(in string) (string, error) {
+// maskStrTagImpl first DeIdentify to get info type, then mask with info type
+func (I *Worker) maskStrTagImpl(in string) (string, error) {
 	if results, err := I.parent.Detect(in); err == nil {
 		if len(results) > 0 {
 			res := results[0]
 			return I.maskTagImpl(in, res.InfoType)
 		}
 	}
-	return I.maskTagImpl(in, MASK_UNKNOWN_TAG)
+	return I.maskTagImpl(in, TypeUnknown)
 }
 
 // maskAlgoImpl replace with algo(in)
-func (I *MaskWorker) maskAlgoImpl(in string) (string, error) {
+func (I *Worker) maskAlgoImpl(in string) (string, error) {
 	inBytes := []byte(in)
 	switch I.rule.Value {
 	case "BASE64":
@@ -222,12 +213,12 @@ func (I *MaskWorker) maskAlgoImpl(in string) (string, error) {
 	case "DEIDENTIFY":
 		return I.maskDeIdentifyImpl(in)
 	default:
-		return in, fmt.Errorf("RuleName: %s, MaskType: %s , Value:%s, %w", I.rule.RuleName, I.rule.MaskType, I.rule.Value, errlist.ERR_MASK_NOT_SUPPORT)
+		return in, fmt.Errorf("RuleName: %s, MaskType: %s , Value:%s, %w", I.rule.RuleName, I.rule.MaskType, I.rule.Value, header.ErrMaskNotSupport)
 	}
 }
 
 // maskAddressImpl masks Address
-func (I *MaskWorker) maskAddressImpl(in string) (string, error) {
+func (I *Worker) maskAddressImpl(in string) (string, error) {
 	st := 0
 
 	if pos, id := I.indexSubList(in, st, enterList, true); pos != -1 { // found
@@ -255,7 +246,7 @@ func (I *MaskWorker) maskAddressImpl(in string) (string, error) {
 }
 
 // IndexSubList find index of a list of sub strings from a string
-func (I *MaskWorker) indexSubList(in string, st int, list []string, isLast bool) (int, int) {
+func (I *Worker) indexSubList(in string, st int, list []string, isLast bool) (int, int) {
 	tmp := in[st:]
 	retPos := -1
 	retId := -1
@@ -283,7 +274,7 @@ func (I *MaskWorker) indexSubList(in string, st int, list []string, isLast bool)
 }
 
 // maskNumberImpl will mask all number in the string
-func (I *MaskWorker) maskNumberImpl(in string) (string, error) {
+func (I *Worker) maskNumberImpl(in string) (string, error) {
 	outBytes := []byte(in)
 	for i, ch := range outBytes {
 		if ch >= '0' && ch <= '9' {
@@ -293,7 +284,7 @@ func (I *MaskWorker) maskNumberImpl(in string) (string, error) {
 	return string(outBytes), nil
 }
 
-func (I *MaskWorker) maskDeIdentifyImpl(in string) (string, error) {
+func (I *Worker) maskDeIdentifyImpl(in string) (string, error) {
 	out, _, err := I.parent.DeIdentify(in)
 	return out, err
 }

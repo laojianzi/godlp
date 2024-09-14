@@ -12,14 +12,14 @@ import (
 
 	"github.com/bytedance/godlp/conf"
 	"github.com/bytedance/godlp/detector"
-	"github.com/bytedance/godlp/dlpheader"
+	"github.com/bytedance/godlp/header"
 	"github.com/bytedance/godlp/mask"
 )
 
-// DefaultConf saves the content of conf.yaml
+// DefConf saves the content of conf.yaml
 //
 //go:embed conf.yml
-var DefaultConf string
+var DefConf string
 
 // const var for dlp
 // outer const values
@@ -31,19 +31,19 @@ const (
 
 // const var for default values
 const (
-	DefaultMaxInput      = 1024 * 1024                      // 1MB, the max input string length
-	DefaultLimitError    = "<--[DLP] Log Limit Exceeded-->" // append to log if limit is exceeded
-	DefaultMaxLogItem    = 16                               // max input items for log
-	DefaultResultSize    = 4                                // default results size for array allocation
-	DefaultLineBlockSize = 1024                             // default line block
-	DefaultCutter        = " /\r\n\\[](){}:=\"',"           // default cutter for finding KV object in string
-	DefaultMaxItem       = 1024 * 4                         // max input items for MAP API
-	DefaultMaxCallDeep   = 5                                // max call depth for MaskStruct
+	DefMaxInput      = 1024 * 1024                      // 1MB, the getMax input string length
+	DefLimitError    = "<--[DLP] Log Limit Exceeded-->" // append to log if limit is exceeded
+	DefMaxLogItem    = 16                               // getMax input items for log
+	DefResultSize    = 4                                // default results size for array allocation
+	DefLineBlockSize = 1024                             // default line block
+	DefCutter        = " /\r\n\\[](){}:=\"',"           // default cutter for finding KV object in string
+	DefMaxItem       = 1024 * 4                         // getMax input items for MAP API
+	DefMaxCallDeep   = 5                                // getMax call depth for MaskStruct
 )
 
 var (
-	DefaultMaxLogInput    int32 = 1024 // default 1KB, the max input length for log, change it in conf
-	DefaultMaxRegexRuleID int32 = 0    // default 0, no regex rule will be used for log default, change it in conf
+	DefMaxLogInput    int32 = 1024 // default 1KB, the getMax input length for log, change it in conf
+	DefMaxRegexRuleID int32 = 0    // default 0, no regex rule will be used for log default, change it in conf
 )
 
 // Engine Object implements all DLP API functions
@@ -58,8 +58,8 @@ type Engine struct {
 	isForLog     bool // true: NewLogProcessor() has been called, will not do other API
 	isConfigured bool // true: ApplyConfig* API has been called, false: not been called
 	confObj      *conf.DlpConf
-	detectorMap  map[int32]detector.DetectorAPI
-	maskerMap    map[string]mask.MaskAPI
+	detectorMap  map[int32]detector.API
+	maskerMap    map[string]mask.API
 }
 
 // NewEngine creates an Engine Object
@@ -71,13 +71,13 @@ type Engine struct {
 //		EngineAPI Object
 //
 //	Comment: 不要放在循环中调用
-func NewEngine(callerID string) (dlpheader.EngineAPI, error) {
+func NewEngine(callerID string) (header.EngineAPI, error) {
 	defer recoveryImplStatic()
 	eng := new(Engine)
 	eng.Version = Version
 	eng.callerID = callerID
-	eng.detectorMap = make(map[int32]detector.DetectorAPI)
-	eng.maskerMap = make(map[string]mask.MaskAPI)
+	eng.detectorMap = make(map[int32]detector.API)
+	eng.maskerMap = make(map[string]mask.API)
 
 	return eng, nil
 }
@@ -103,7 +103,7 @@ func (I *Engine) Close() {
 
 // ShowResults print results in console
 // 打印识别结果
-func (I *Engine) ShowResults(results []*dlpheader.DetectResult) {
+func (I *Engine) ShowResults(results []*header.DetectResult) {
 	defer I.recoveryImpl()
 	fmt.Println()
 	fmt.Printf("\tTotal Results: %d\n", len(results))
@@ -121,7 +121,7 @@ func (I *Engine) GetVersion() string {
 
 // NewLogProcessor create a log processor for the package logs
 // 调用过之后，eng只能用于log处理，因为规则会做专门的优化，不适合其他API使用
-func (I *Engine) NewLogProcessor() dlpheader.Processor {
+func (I *Engine) NewLogProcessor() header.Processor {
 	defer I.recoveryImpl()
 
 	I.isForLog = true
@@ -133,26 +133,26 @@ func (I *Engine) NewLogProcessor() dlpheader.Processor {
 		// Do not use logs function inside this function
 		newLog := rawLog
 		logCut := false
-		if int32(len(newLog)) >= DefaultMaxLogInput {
+		if int32(len(newLog)) >= DefMaxLogInput {
 			// cut for long log
-			newLog = newLog[:DefaultMaxLogInput]
+			newLog = newLog[:DefMaxLogInput]
 			logCut = true
 		}
 		newLog, _, _ = I.deIdentifyImpl(newLog)
 		if logCut {
-			newLog += DefaultLimitError
+			newLog += DefLimitError
 		}
-		// fmt.Printf("LogProcesser rawLog: %s, kvs: %+v\n", rawLog, kvs)
+		// fmt.Printf("LogProcessor rawLog: %s, kvs: %+v\n", rawLog, kvs)
 		sz := len(kvs)
 		// k1,v1,k2,v2,...
 		if sz%2 != 0 {
 			sz--
 		}
-		kvCutted := false
-		if sz >= DefaultMaxLogItem {
+		kvCut := false
+		if sz >= DefMaxLogItem {
 			// cut for too many items
-			sz = DefaultMaxLogItem
-			kvCutted = true
+			sz = DefMaxLogItem
+			kvCut = true
 		}
 		retKvs := make([]interface{}, 0, sz)
 		if sz > 0 {
@@ -168,16 +168,16 @@ func (I *Engine) NewLogProcessor() dlpheader.Processor {
 				retKvs = append(retKvs, k, v)
 			}
 		}
-		if kvCutted {
-			retKvs = append(retKvs, "<--[DLP Error]-->", DefaultLimitError)
+		if kvCut {
+			retKvs = append(retKvs, "<--[DLP Error]-->", DefLimitError)
 		}
 		return newLog, retKvs, true
 	}
 }
 
-// NewEmptyLogProcesser will new a log processer which will do nothing
+// NewEmptyLogProcessor will new a log processor which will do nothing
 // 业务禁止使用
-func (I *Engine) NewEmptyLogProcessor() dlpheader.Processor {
+func (I *Engine) NewEmptyLogProcessor() header.Processor {
 	return func(rawLog string, kvs ...interface{}) (string, []interface{}, bool) {
 		return rawLog, kvs, true
 	}
@@ -189,9 +189,9 @@ func (I *Engine) ShowDlpConf() error {
 	confObj := *I.confObj
 	out, err := yaml.Marshal(confObj)
 	if err == nil {
-		fmt.Println("====ngdlp conf start====")
+		fmt.Println("====godlp conf start====")
 		fmt.Println(string(out))
-		fmt.Println("====ngdlp conf end====")
+		fmt.Println("====godlp conf end====")
 		return nil
 	} else {
 		return err
@@ -201,12 +201,12 @@ func (I *Engine) ShowDlpConf() error {
 // GetDefaultConf will return default config string
 // 返回默认的conf string
 func (I *Engine) GetDefaultConf() string {
-	return DefaultConf
+	return DefConf
 }
 
 // DisableAllRules will disable all rules of engine
 func (I *Engine) DisableAllRules() error {
-	for i, _ := range I.detectorMap {
+	for i := range I.detectorMap {
 		I.detectorMap[i] = nil
 	}
 	return nil
@@ -229,7 +229,7 @@ func (I *Engine) interfaceToStr(in interface{}) string {
 
 // loadDefCfg from the embedded resources
 func (I *Engine) loadDefCfg() error {
-	if confObj, err := conf.NewDlpConf(DefaultConf); err == nil {
+	if confObj, err := conf.NewDlpConf(DefConf); err == nil {
 		return I.applyConfigImpl(confObj)
 	} else {
 		return err

@@ -3,11 +3,12 @@ package conf
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"strings"
 
-	"github.com/bytedance/godlp/errlist"
 	"gopkg.in/yaml.v2"
+
+	"github.com/bytedance/godlp/header"
 )
 
 type MaskRuleItem struct {
@@ -36,19 +37,19 @@ type RuleItem struct {
 		VReg  []string `yaml:"VReg"`       // Regex List for Value
 		VDict []string `yaml:"VDict,flow"` // Dict for Value
 	} `yaml:"Detect"`
-	// result which is hit by blacklist will not returned to caller
+	// result which is hit by blacklist will not return to caller
 	Filter struct {
 		// BReg || BDict
 		BReg  []string `yaml:"BReg"`       // Regex List for BlackList
 		BDict []string `yaml:"BDict,flow"` // Dict for BlackList
 		BAlgo []string `yaml:"BAlgo"`      // Algorithm List for BlackList, one of [ MASKED ]
 	} `yaml:"Filter"`
-	// result need pass verify process before retured to caller
+	// result need pass verify process before returned to caller
 	Verify struct {
 		// CReg || CDict
 		CReg  []string `yaml:"CReg"`       // Regex List for Context Verification
 		CDict []string `yaml:"CDict,flow"` // Dict for Context Verification
-		VAlgo []string `yaml:"VAlgo"`      // Algorithm List for Verification, one of [ IDVerif , CardVefif ]
+		VAlgo []string `yaml:"VAlgo"`      // Algorithm List for Verification, one of [ IDVerify , CardVerify ]
 	} `yaml:"Verify"`
 	Mask    string            `yaml:"Mask"` // MaskRuleItem.RuleName for Mask
 	ExtInfo map[string]string `yaml:"ExtInfo"`
@@ -69,9 +70,8 @@ type DlpConf struct {
 	Rules     []RuleItem     `yaml:"Rules"`
 }
 
-// public func
-
 // NewDlpConf creates DlpConf object by conf content string
+// public func
 func NewDlpConf(confString string) (*DlpConf, error) {
 	return newDlpConfImpl(confString)
 }
@@ -79,9 +79,9 @@ func NewDlpConf(confString string) (*DlpConf, error) {
 // NewDlpConfByPath creates DlpConf object by confPath
 func NewDlpConfByPath(confPath string) (*DlpConf, error) {
 	if len(confPath) == 0 {
-		return nil, errlist.ERR_CONFPATH_EMPTY
+		return nil, header.ErrConfPathEmpty
 	}
-	if fileData, err := ioutil.ReadFile(confPath); err == nil {
+	if fileData, err := os.ReadFile(confPath); err == nil {
 		return newDlpConfImpl(string(fileData))
 	} else {
 		return nil, err
@@ -89,11 +89,11 @@ func NewDlpConfByPath(confPath string) (*DlpConf, error) {
 }
 
 var (
-	defModeSet          []string = []string{"debug", "release"}
-	defAPIVersionPrefix          = "v2"
-	defMaskTypeSet      []string = []string{"CHAR", "TAG", "REPLACE", "ALGO"}
-	defMaskAlgo         []string = []string{"BASE64", "MD5", "CRC32", "ADDRESS", "NUMBER", "DEIDENTIFY"}
-	defIgnoreKind       []string = []string{"NUMERIC", "ALPHA_UPPER_CASE", "ALPHA_LOWER_CASE", "WHITESPACE", "PUNCTUATION"}
+	defModeSet          = []string{"debug", "release"}
+	defAPIVersionPrefix = "v2"
+	defMaskTypeSet      = []string{"CHAR", "TAG", "REPLACE", "ALGO"}
+	defMaskAlgo         = []string{"BASE64", "MD5", "CRC32", "ADDRESS", "NUMBER", "DEIDENTIFY"}
+	defIgnoreKind       = []string{"NUMERIC", "ALPHA_UPPER_CASE", "ALPHA_LOWER_CASE", "WHITESPACE", "PUNCTUATION"}
 )
 
 func (I *DlpConf) Verify() error {
@@ -101,33 +101,33 @@ func (I *DlpConf) Verify() error {
 
 	// ApiVersion
 	if !strings.HasPrefix(I.Global.ApiVersion, defAPIVersionPrefix) {
-		return fmt.Errorf("%w, Global.APIVersion:%s failed", errlist.ERR_CONF_VERIFY_FAILED, I.Global.ApiVersion)
+		return fmt.Errorf("%w, Global.APIVersion:%s failed", header.ErrConfVerifyFailed, I.Global.ApiVersion)
 	}
 	// Mode
 	I.Global.Mode = strings.ToLower(I.Global.Mode)
 	if inList(I.Global.Mode, defModeSet) == -1 { // not found
-		return fmt.Errorf("%w, Global.Mode:%s failed", errlist.ERR_CONF_VERIFY_FAILED, I.Global.Mode)
+		return fmt.Errorf("%w, Global.Mode:%s failed", header.ErrConfVerifyFailed, I.Global.Mode)
 	}
 	// MaskRules
 	for _, rule := range I.MaskRules {
 		// MaskType
 		if inList(rule.MaskType, defMaskTypeSet) == -1 {
-			return fmt.Errorf("%w, Mask RuleName:%s, MaskType:%s is not suppored", errlist.ERR_CONF_VERIFY_FAILED, rule.RuleName, rule.MaskType)
+			return fmt.Errorf("%w, Mask RuleName:%s, MaskType:%s is not suppored", header.ErrConfVerifyFailed, rule.RuleName, rule.MaskType)
 		}
 		if strings.Compare(rule.MaskType, "ALGO") == 0 {
 			if inList(rule.Value, defMaskAlgo) == -1 {
-				return fmt.Errorf("%w, Mask RuleName:%s, ALGO Value: %s is not supported", errlist.ERR_CONF_VERIFY_FAILED, rule.RuleName, rule.Value)
+				return fmt.Errorf("%w, Mask RuleName:%s, ALGO Value: %s is not supported", header.ErrConfVerifyFailed, rule.RuleName, rule.Value)
 			}
 		}
 		if !(rule.Offset >= 0) {
-			return fmt.Errorf("%w, Mask RuleName:%s, Offset: %d need >=0", errlist.ERR_CONF_VERIFY_FAILED, rule.RuleName, rule.Offset)
+			return fmt.Errorf("%w, Mask RuleName:%s, Offset: %d need >=0", header.ErrConfVerifyFailed, rule.RuleName, rule.Offset)
 		}
 		if !(rule.Length >= 0) {
-			return fmt.Errorf("%w, Mask RuleName:%s, Length: %d need >=0", errlist.ERR_CONF_VERIFY_FAILED, rule.RuleName, rule.Length)
+			return fmt.Errorf("%w, Mask RuleName:%s, Length: %d need >=0", header.ErrConfVerifyFailed, rule.RuleName, rule.Length)
 		}
 		for _, kind := range rule.IgnoreKind {
 			if inList(kind, defIgnoreKind) == -1 {
-				return fmt.Errorf("%w, Mask RuleName:%s, IgnoreKind: %s is not supported", errlist.ERR_CONF_VERIFY_FAILED, rule.RuleName, kind)
+				return fmt.Errorf("%w, Mask RuleName:%s, IgnoreKind: %s is not supported", header.ErrConfVerifyFailed, rule.RuleName, kind)
 			}
 		}
 	}
@@ -136,7 +136,7 @@ func (I *DlpConf) Verify() error {
 		de := rule.Detect
 		// at least one detect rule
 		if len(de.KReg) == 0 && len(de.KDict) == 0 && len(de.VReg) == 0 && len(de.VDict) == 0 {
-			return fmt.Errorf("%w, RuleID:%d, Detect field missing", errlist.ERR_CONF_VERIFY_FAILED, rule.RuleID)
+			return fmt.Errorf("%w, RuleID:%d, Detect field missing", header.ErrConfVerifyFailed, rule.RuleID)
 		}
 	}
 	return nil
@@ -144,10 +144,10 @@ func (I *DlpConf) Verify() error {
 
 // private func
 
-// newDlpConfImpl implements newDlpConf by receving conf content string
+// newDlpConfImpl implements newDlpConf by receiving conf content string
 func newDlpConfImpl(confString string) (*DlpConf, error) {
 	if len(confString) == 0 {
-		return nil, errlist.ERR_CONF_EMPTY
+		return nil, header.ErrConfEmpty
 	}
 	confObj := new(DlpConf)
 	if err := yaml.Unmarshal([]byte(confString), &confObj); err == nil {

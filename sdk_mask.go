@@ -1,67 +1,64 @@
-// Package dlp sdkmask.go implements Mask API
+// Package dlp sdk mask.go implements Mask API
 package dlp
 
 import (
 	"fmt"
 	"reflect"
 
-	"github.com/bytedance/godlp/dlpheader"
-	"github.com/bytedance/godlp/errlist"
+	"github.com/bytedance/godlp/header"
 	"github.com/bytedance/godlp/mask"
 )
-
-// public func
 
 // Mask will return masked text directly based on methodName
 func (I *Engine) Mask(inputText string, methodName string) (outputText string, err error) {
 	defer I.recoveryImpl()
-	if !I.hasConfiged() { // not configed
-		panic(errlist.ERR_HAS_NOT_CONFIGED)
+	if !I.hasConfigured() { // not configured
+		panic(header.ErrHasNotConfigured)
 	}
 	if I.hasClosed() {
-		return "", errlist.ERR_PROCESS_AFTER_CLOSE
+		return "", header.ErrProcessAfterClose
 	}
-	if len(inputText) > DefaultMaxInput {
-		return inputText, fmt.Errorf("DefaultMaxInput: %d , %w", DefaultMaxInput, errlist.ERR_MAX_INPUT_LIMIT)
+	if len(inputText) > DefMaxInput {
+		return inputText, fmt.Errorf("DefMaxInput: %d , %w", DefMaxInput, header.ErrMaxInputLimit)
 	}
 	if maskWorker, ok := I.maskerMap[methodName]; ok {
 		return maskWorker.Mask(inputText)
 	} else {
-		return inputText, fmt.Errorf("methodName: %s, error: %w", methodName, errlist.ERR_MASKWORKER_NOTFOUND)
+		return inputText, fmt.Errorf("methodName: %s, error: %w", methodName, header.ErrMaskWorkerNotfound)
 	}
 }
 
-// MaskStruct will mask a strcut object by tag mask info
+// MaskStruct will mask a struct object by tag mask info
 // 根据tag mask里定义的脱敏规则对struct object直接脱敏, 会修改obj本身，传入指针，返回指针
 func (I *Engine) MaskStruct(inPtr interface{}) (outPtr interface{}, retErr error) {
-	outPtr = inPtr                          // fail back to inPtr
-	retErr = errlist.ERR_MASK_STRUCT_OUTPUT // default return err if panic
+	outPtr = inPtr                      // fail back to inPtr
+	retErr = header.ErrMaskStructOutput // default return err if panic
 	defer I.recoveryImpl()
-	if !I.hasConfiged() { // not configed
-		panic(errlist.ERR_HAS_NOT_CONFIGED)
+	if !I.hasConfigured() { // not configured
+		panic(header.ErrHasNotConfigured)
 	}
 	if I.hasClosed() {
-		return inPtr, errlist.ERR_PROCESS_AFTER_CLOSE
+		return inPtr, header.ErrProcessAfterClose
 	}
 	if inPtr == nil {
-		return nil, errlist.ERR_MASK_STRUCT_INPUT
+		return nil, header.ErrMaskStructInput
 	}
-	outPtr, retErr = I.maskStructImpl(inPtr, DefaultMaxCallDeep)
+	outPtr, retErr = I.maskStructImpl(inPtr, DefMaxCallDeep)
 	return
 }
 
-// Register DIY Masker
+// RegisterMasker Register DIY Masker
 // 注册自定义打码函数
 func (I *Engine) RegisterMasker(maskName string, maskFunc func(string) (string, error)) error {
 	defer I.recoveryImpl()
-	if !I.hasConfiged() { // not configed
-		panic(errlist.ERR_HAS_NOT_CONFIGED)
+	if !I.hasConfigured() { // not configured
+		panic(header.ErrHasNotConfigured)
 	}
 	if I.hasClosed() {
-		return errlist.ERR_PROCESS_AFTER_CLOSE
+		return header.ErrProcessAfterClose
 	}
 	if _, ok := I.maskerMap[maskName]; ok {
-		return errlist.ERR_MASKName_CONFLICT
+		return header.ErrMaskNameConflict
 	} else {
 		if worker, err := I.NewDIYMaskWorker(maskName, maskFunc); err == nil {
 			I.maskerMap[maskName] = worker
@@ -80,18 +77,18 @@ type DIYMaskWorker struct {
 	maskName string
 }
 
-// GetRuleName is required by mask.MaskAPI
+// GetRuleName is required by mask.API
 func (I *DIYMaskWorker) GetRuleName() string {
 	return I.maskName
 }
 
-// Mask is required by mask.MaskAPI
+// Mask is required by mask.API
 func (I *DIYMaskWorker) Mask(in string) (string, error) {
 	return I.maskFunc(in)
 }
 
-// MaskResult is required by mask.MaskAPI
-func (I *DIYMaskWorker) MaskResult(res *dlpheader.DetectResult) error {
+// MaskResult is required by mask.API
+func (I *DIYMaskWorker) MaskResult(res *header.DetectResult) error {
 	if out, err := I.Mask(res.Text); err == nil {
 		res.MaskText = out
 		return nil
@@ -100,15 +97,15 @@ func (I *DIYMaskWorker) MaskResult(res *dlpheader.DetectResult) error {
 	}
 }
 
-// NewDIYMaskWorker creates mask.MaskAPI object
-func (I *Engine) NewDIYMaskWorker(maskName string, maskFunc func(string) (string, error)) (mask.MaskAPI, error) {
+// NewDIYMaskWorker creates mask.API object
+func (I *Engine) NewDIYMaskWorker(maskName string, maskFunc func(string) (string, error)) (mask.API, error) {
 	worker := new(DIYMaskWorker)
 	worker.maskName = maskName
 	worker.maskFunc = maskFunc
 	return worker, nil
 }
 
-// maskStructImpl will mask a strcut object by tag mask info
+// maskStructImpl will mask a struct object by tag mask info
 // 根据tag mask里定义的脱敏规则对struct object直接脱敏, 会修改obj本身，传入指针，返回指针
 func (I *Engine) maskStructImpl(inPtr interface{}, level int) (interface{}, error) {
 	// log.Errorf("[DLP] level:%d, maskStructImpl: %+v", level, inPtr)
@@ -119,21 +116,21 @@ func (I *Engine) maskStructImpl(inPtr interface{}, level int) (interface{}, erro
 	}
 	valPtr := reflect.ValueOf(inPtr)
 	if valPtr.Kind() != reflect.Ptr || valPtr.IsNil() || !valPtr.IsValid() || valPtr.IsZero() {
-		return inPtr, errlist.ERR_MASK_STRUCT_INPUT
+		return inPtr, header.ErrMaskStructInput
 	}
 	val := reflect.Indirect(valPtr)
 	var retErr error
 	if val.CanSet() {
 		if val.Kind() == reflect.Struct {
 			sz := val.NumField()
-			if sz > DefaultMaxInput {
-				return inPtr, fmt.Errorf("DefaultMaxInput: %d , %w", DefaultMaxInput, errlist.ERR_MAX_INPUT_LIMIT)
+			if sz > DefMaxInput {
+				return inPtr, fmt.Errorf("DefMaxInput: %d , %w", DefMaxInput, header.ErrMaxInputLimit)
 			}
 			for i := 0; i < sz; i++ {
 				valField := val.Field(i)
 				typeField := val.Type().Field(i)
 				inStr := valField.String()
-				outStr := inStr // default is orignal str
+				outStr := inStr // default is original str
 				methodName, ok := typeField.Tag.Lookup("mask")
 				if !ok { // mask tag not found
 					continue
@@ -206,6 +203,8 @@ func (I *Engine) maskStructImpl(inPtr interface{}, level int) (interface{}, erro
 								}
 							}
 						}
+					default:
+						continue
 					}
 				}
 			}

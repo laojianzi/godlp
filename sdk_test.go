@@ -1,14 +1,13 @@
 package dlp
 
 import (
-	"io/ioutil"
 	"os"
 	"runtime"
 	"testing"
 
 	"gopkg.in/yaml.v2"
 
-	"github.com/bytedance/godlp/dlpheader"
+	"github.com/bytedance/godlp/header"
 	"github.com/bytedance/godlp/log"
 )
 
@@ -31,19 +30,22 @@ func TestMain(m *testing.M) {
 }
 func TestRule(t *testing.T) {
 	testPath := "./test/rule_test.yml"
-	if buf, err := ioutil.ReadFile(testPath); err == nil {
+	if buf, err := os.ReadFile(testPath); err == nil {
 		ruleTestPtr := new(RuleTest)
 		if err := yaml.Unmarshal(buf, ruleTestPtr); err == nil {
 			t.Logf("%s: Data:%s", testPath, ruleTestPtr.Date)
 			if eng, err := NewEngine("replace.your.psm"); err == nil {
-				eng.ApplyConfigDefault()
+				if err = eng.ApplyConfigDefault(); err != nil {
+					t.Fatal(err)
+				}
+
 				for _, item := range ruleTestPtr.TestList {
 					if out, results, err := eng.DeIdentify(item.In); err == nil {
 						if len(results) == 0 && item.RuleID == 0 { // no sensitive info found, it's ok
 							// check ok
 							continue
 						}
-						if out == item.Out && len(results) >= 1 && results[0].RuleID == item.RuleID { // check ok
+						if out == item.Out && len(results) >= 1 && results[0].RuleID == item.RuleID {
 							// check ok
 							continue
 						} else {
@@ -107,7 +109,7 @@ func TestDeIdentifyJSONByResult(t *testing.T) {
 
 	// remove the rule NAME from the detectResults
 	for _, r := range detectRes {
-		newDetectRes := make([]*dlpheader.DetectResult, 0)
+		newDetectRes := make([]*header.DetectResult, 0)
 		if r.InfoType != "NAME" {
 			newDetectRes = append(newDetectRes, r)
 		}

@@ -1,4 +1,4 @@
-// Package dlp sdkconfig.go implement config related API
+// Package dlp sdk config.go implement config related API
 package dlp
 
 import (
@@ -30,7 +30,6 @@ func (I *Engine) ApplyConfigFile(filePath string) error {
 	}
 	return retErr
 }
-
 
 func (I *Engine) ApplyConfigDefault() error {
 	return I.loadDefCfg()

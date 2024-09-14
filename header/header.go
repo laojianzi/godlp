@@ -1,11 +1,11 @@
-// Package dlpheader defines API information about DLP SDK, including DetectResult, mask methods and API functions.
-package dlpheader
+// Package header defines API information about DLP SDK, including DetectResult, mask methods and API functions.
+package header
 
 import (
 	"strings"
 )
 
-// DetectResult DataStrcuture. Two kinds of result
+// DetectResult Data Structure. Two kinds of result
 // ResultType: VALUE, returned from Detect() and DeIdentify()
 // ResultType: KV, returned from DetectMap(), DetectJSON() and DeIdentifyMap()
 type DetectResult struct {
@@ -92,7 +92,7 @@ type EngineAPI interface {
 	// 对map[string]string先识别，然后按规则进行打码
 	DeIdentifyMap(inputMap map[string]string) (map[string]string, []*DetectResult, error)
 
-	// DeIdentifyJSON detects JSON firstly, then return masked json object in string formate and results
+	// DeIdentifyJSON detects JSON firstly, then return masked json object in string format and results
 	// 对jsonText先识别，然后按规则进行打码，返回打码后的JSON string
 	DeIdentifyJSON(jsonText string) (string, []*DetectResult, error)
 
@@ -104,11 +104,11 @@ type EngineAPI interface {
 	// 根据脱敏规则直接脱敏
 	Mask(inputText string, methodName string) (string, error)
 
-	// MaskStruct will mask a strcut object by tag mask info
+	// MaskStruct will mask a struct object by tag mask info
 	// 根据tag mask里定义的脱敏规则对struct object直接脱敏，必须传入指针
 	MaskStruct(inObj interface{}) (interface{}, error)
 
-	// NewLogProcessor create a log processer for the package logs
+	// NewLogProcessor create a log processor for the package logs
 	// 日志脱敏处理函数，调用过之后，eng只能用于log处理，因为规则会做专门的优化，不适合其他API使用
 	// 最大输入1KB, 16 items, 预计最高200QPS，超出会截断日志，CPU也会相应升高，业务需要特别关注。
 	NewLogProcessor() Processor
@@ -117,15 +117,15 @@ type EngineAPI interface {
 	// 关闭，释放内部变量
 	Close()
 
-	// Get Dlp SDK version string
+	// GetVersion Get Dlp SDK version string
 	// 获取版本号
 	GetVersion() string
 
-	// Register DIY Masker
+	// RegisterMasker Register DIY Masker
 	// 注册自定义打码函数
 	RegisterMasker(maskName string, maskFunc func(string) (string, error)) error
 
-	// ApplyConfigDefault will use embeded local config, only used for DLP team
+	// ApplyConfigDefault will use embedded local config, only used for DLP team
 	// 业务禁止使用
 	ApplyConfigDefault() error
 
@@ -133,7 +133,7 @@ type EngineAPI interface {
 	// 业务禁止使用
 	DisableAllRules() error
 
-	// NewEmptyLogProcesser will new a log processer which will do nothing
+	// NewEmptyLogProcessor will new a log processor which will do nothing
 	// 业务禁止使用
 	NewEmptyLogProcessor() Processor
 

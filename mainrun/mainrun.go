@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	dlp "github.com/bytedance/godlp"
-	"github.com/bytedance/godlp/dlpheader"
+	"github.com/bytedance/godlp/header"
 )
 
 func dupString(src string, coefficient int) string {
@@ -40,7 +40,7 @@ mac地址 06-06-06-aa-bb-cc
 			fmt.Println()
 		}
 		inStr = `18612341234`
-		if outStr, err := eng.Mask(inStr, dlpheader.CHINAPHONE); err == nil {
+		if outStr, err := eng.Mask(inStr, header.CHINAPHONE); err == nil {
 			fmt.Printf("\t3. Mask( inStr: %s )\n", inStr)
 			fmt.Printf("\toutStr: %s\n", outStr)
 			fmt.Println()

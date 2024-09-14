@@ -121,19 +121,19 @@ godlp 以 Engine 结构为主，通过Engine对象来实现 EngineAPI 接口，�
 
 2. sdk_test.go: 单元测试用例。
 
-3. sdkconfig.go: 实现配置相关的接口，例如ApplyConfig()
+3. sdk_config.go: 实现配置相关的接口，例如ApplyConfig()
 
-4. sdkdeidentify.go: 实现脱敏相关的接口。
+4. sdk_deidentify.go: 实现脱敏相关的接口。
 
-5. sdkdetect.go: 实现敏感信息检测接口。
+5. sdk_detect.go: 实现敏感信息检测接口。
 
-6. sdkinternal.go: 实现 Engine 对象的内部函数。
+6. sdk_internal.go: 实现 Engine 对象的内部函数。
 
-7. sdkmask.go: 实现直接打码的接口。
+7. sdk_mask.go: 实现直接打码的接口。
 
 8. conf.yml: 内置的默认配置文件，含DLP维护的规则。
 
-9. bindata.go: go generate生成的数据文件，包含conf.yml
+9. ~~bindata.go: go generate生成的数据文件，包含conf.yml~~ 改用 embed
 
 ## 5.2 子目录说明
 

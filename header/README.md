@@ -1,6 +1,6 @@
-# dlpheader 介绍
+# header 介绍
 
-dlpheader定义了DLP SDK需要的数据结构，常量定义等。DLP SDK主要提供了以下API进行敏感信息识别和脱敏。
+header定义了DLP SDK需要的数据结构，常量定义等。DLP SDK主要提供了以下API进行敏感信息识别和脱敏。
 
 1. ApplyConfig(conf string) error
 - ApplyConfig by configuration content

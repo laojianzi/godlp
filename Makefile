@@ -1,10 +1,10 @@
-# Project: ngdlp
+# Project: godlp
 # Date:	2021.05.26
 # Author: <empty>
 # Description: Makefile for the whole project
 # 	
 
-PROJECT_NAME ?= ngdlp
+PROJECT_NAME ?= godlp
 OUTPUT ?= ./output
 FLAGS := -gcflags=all="-N -l"
 ifeq ($(OS),Windows_NT)
@@ -34,16 +34,13 @@ dep:
 lint:
 	@$(GOPATH)/bin/golint ./...
 
-gen: clean
-	@go generate
-
 release:
 	@mkdir -p $(OUTPUT)
-	@GOOS=linux go build $(FLAGS) -o $(OUTPUT)/ngdlp.elf ./mainrun/
-	@GOOS=darwin go build $(FLAGS) -o $(OUTPUT)/ngdlp.mac ./mainrun/
-	@GOOS=windows go build $(FLAGS) -o $(OUTPUT)/ngdlp.exe ./mainrun/
+	@GOOS=linux go build $(FLAGS) -o $(OUTPUT)/godlp.elf ./mainrun/
+	@GOOS=darwin go build $(FLAGS) -o $(OUTPUT)/godlp.mac ./mainrun/
+	@GOOS=windows go build $(FLAGS) -o $(OUTPUT)/godlp.exe ./mainrun/
 
-build: gen release
+build: release
 	
 run: build
 	@go run $(FLAGS) ./mainrun/
