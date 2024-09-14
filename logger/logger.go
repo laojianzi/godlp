@@ -29,22 +29,22 @@ func SetLogger(logger Logger) {
 
 // Debugf 会格式化日志内容并输出为 LevelDebug 级别
 func Debugf(format string, args ...interface{}) {
-	engine.Debugf(format, args)
+	engine.Debugf(format, args...)
 }
 
 // Infof 会格式化日志内容并输出为 LevelInfo 级别
 func Infof(format string, args ...interface{}) {
-	engine.Infof(format, args)
+	engine.Infof(format, args...)
 }
 
 // Warnf 会格式化日志内容并输出为 LevelWarn 级别
 func Warnf(format string, args ...interface{}) {
-	engine.Warnf(format, args)
+	engine.Warnf(format, args...)
 }
 
 // Errorf 会格式化日志内容并输出为 LevelError 级别
 func Errorf(format string, args ...interface{}) {
-	engine.Errorf(format, args)
+	engine.Errorf(format, args...)
 }
 
 // SetLevel 用于控制日志输出等级，低于设置的等级的日志不会被输出

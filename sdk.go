@@ -3,6 +3,7 @@ package dlp
 
 import (
 	_ "embed"
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"strings"
@@ -107,10 +108,8 @@ func (I *Engine) ShowResults(results []*header.DetectResult) {
 	defer I.recoveryImpl()
 	logger.Debugf("\n")
 	logger.Debugf("\tTotal Results: %d\n", len(results))
-	for i, item := range results {
-		logger.Debugf("Result[%d]: %+v\n", i, *item)
-	}
-	logger.Debugf("\n")
+	content, _ := json.Marshal(results)
+	logger.Debugf("%s\n", string(content))
 }
 
 // GetVersion return DLP SDK version
