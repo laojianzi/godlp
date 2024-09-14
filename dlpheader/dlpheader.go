@@ -1,4 +1,4 @@
-//Package dlpheader defines API information about DLP SDK, including DetectResult, mask methods and API functions.
+// Package dlpheader defines API information about DLP SDK, including DetectResult, mask methods and API functions.
 package dlpheader
 
 import (
@@ -6,12 +6,12 @@ import (
 )
 
 // DetectResult DataStrcuture. Two kinds of result
-// ResultType: VALUE, returned from Detect() and Deidentify()
-// ResultType: KV, returned from DetectMap(), DetectJSON() and DeidentifyMap()
+// ResultType: VALUE, returned from Detect() and DeIdentify()
+// ResultType: KV, returned from DetectMap(), DetectJSON() and DeIdentifyMap()
 type DetectResult struct {
 	RuleID     int32  `json:"rule_id"`     // RuleID of rules in conf file
 	Text       string `json:"text"`        // substring which is detected by rule
-	MaskText   string `json:"mask_text"`   // maskstring which is deidentify by rule
+	MaskText   string `json:"mask_text"`   // mask string which is de identify by rule
 	ResultType string `json:"result_type"` // VALUE or KV, based on Rule
 	Key        string `json:"key"`         // In ResultType: KV, Key is key of map for path of json object
 	// In ResultType: VALUE mode, DetectResult.Text will be inputText[ByteStart:ByteEnd]
@@ -79,22 +79,22 @@ type EngineAPI interface {
 	// 对json string 进行敏感信息识别
 	DetectJSON(jsonText string) ([]*DetectResult, error)
 
-	// DeidentifyJSONFromDetectResults  returns masked json object in string format from the passed-in []*DetectResult.
+	// DeIdentifyJSONByResult  returns masked json object in string format from the passed-in []*DetectResult.
 	// You may want to call DetectJSON first to obtain the []*DetectResult.
 	// 根据传入的 []*DetectResult 对 Json 进行打码，返回打码后的JSON string
-	DeidentifyJSONByResult(jsonText string, detectResults []*DetectResult) (outStr string, retErr error)
+	DeIdentifyJSONByResult(jsonText string, detectResults []*DetectResult) (outStr string, retErr error)
 
-	// Deidentify detects string firstly, then return masked string and results
+	// DeIdentify detects string firstly, then return masked string and results
 	// 对string先识别，然后按规则进行打码
-	Deidentify(inputText string) (string, []*DetectResult, error)
+	DeIdentify(inputText string) (string, []*DetectResult, error)
 
-	// DeidentifyMap detects KV map firstly,then return masked map
+	// DeIdentifyMap detects KV map firstly,then return masked map
 	// 对map[string]string先识别，然后按规则进行打码
-	DeidentifyMap(inputMap map[string]string) (map[string]string, []*DetectResult, error)
+	DeIdentifyMap(inputMap map[string]string) (map[string]string, []*DetectResult, error)
 
-	// DeidentifyJSON detects JSON firstly, then return masked json object in string formate and results
+	// DeIdentifyJSON detects JSON firstly, then return masked json object in string formate and results
 	// 对jsonText先识别，然后按规则进行打码，返回打码后的JSON string
-	DeidentifyJSON(jsonText string) (string, []*DetectResult, error)
+	DeIdentifyJSON(jsonText string) (string, []*DetectResult, error)
 
 	// ShowResults print results in console
 	// 打印识别结果

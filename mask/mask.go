@@ -17,8 +17,8 @@ import (
 const (
 	MASKTYPE_CHAR    = "CHAR"    // 用字符替换敏感信息，需要用到后面更详细的配置项。
 	MASKTYPE_TAG     = "TAG"     // 用识别和处理规则中的InfoType, 以`<InfoType>`的形式替换敏感信息。
-	MASKTYPE_REPLACE = "REPLACE" //用Value定义的字符串，替换敏感信息，可以设定为空串，用于直接抹除。
-	MASKTYPE_ALGO    = "ALGO"    //用Value定义的算法函数，处理敏感信息，用算法返回值替换原文，目前支持的算法有 [BASE64, MD5, CRC32]
+	MASKTYPE_REPLACE = "REPLACE" // 用Value定义的字符串，替换敏感信息，可以设定为空串，用于直接抹除。
+	MASKTYPE_ALGO    = "ALGO"    // 用Value定义的算法函数，处理敏感信息，用算法返回值替换原文，目前支持的算法有 [BASE64, MD5, CRC32]
 
 	MASK_ALGO_BASE64 = "BASE64"
 	MASK_ALGO_MD5    = "MD5"
@@ -49,7 +49,7 @@ type MaskAPI interface {
 // NewMaskWorker create MaskWorker based on MaskRule
 func NewMaskWorker(rule conf.MaskRuleItem, p dlpheader.EngineAPI) (MaskAPI, error) {
 	obj := new(MaskWorker)
-	//IgnoreKind
+	// IgnoreKind
 	for _, kind := range rule.IgnoreKind {
 		switch kind {
 		case "NUMERIC":
@@ -194,7 +194,7 @@ func (I *MaskWorker) maskReplaceImpl(in string) (string, error) {
 	return I.rule.Value, nil
 }
 
-// maskStrTagImpl first Deidentify to get infotype, then mask with infotype
+// maskStrTagImpl first DeIdentify to get info type, then mask with infotype
 func (I *MaskWorker) maskStrTagImpl(in string) (string, error) {
 	if results, err := I.parent.Detect(in); err == nil {
 		if len(results) > 0 {
@@ -220,7 +220,7 @@ func (I *MaskWorker) maskAlgoImpl(in string) (string, error) {
 	case "NUMBER":
 		return I.maskNumberImpl(in)
 	case "DEIDENTIFY":
-		return I.maskDeidentifyImpl(in)
+		return I.maskDeIdentifyImpl(in)
 	default:
 		return in, fmt.Errorf("RuleName: %s, MaskType: %s , Value:%s, %w", I.rule.RuleName, I.rule.MaskType, I.rule.Value, errlist.ERR_MASK_NOT_SUPPORT)
 	}
@@ -293,7 +293,7 @@ func (I *MaskWorker) maskNumberImpl(in string) (string, error) {
 	return string(outBytes), nil
 }
 
-func (I *MaskWorker) maskDeidentifyImpl(in string) (string, error) {
-	out, _, err := I.parent.Deidentify(in)
+func (I *MaskWorker) maskDeIdentifyImpl(in string) (string, error) {
+	out, _, err := I.parent.DeIdentify(in)
 	return out, err
 }

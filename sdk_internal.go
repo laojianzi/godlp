@@ -4,13 +4,14 @@ package dlp
 import (
 	"encoding/json"
 	"fmt"
+	"os"
+	"runtime/debug"
+	"strings"
+
 	"github.com/bytedance/godlp/detector"
 	"github.com/bytedance/godlp/errlist"
 	"github.com/bytedance/godlp/log"
 	"github.com/bytedance/godlp/mask"
-	"os"
-	"runtime/debug"
-	"strings"
 )
 
 type HttpResponseBase struct {
@@ -21,7 +22,7 @@ type HttpResponseBase struct {
 type DescribeRulesResponse struct {
 	HttpResponseBase
 	Rule []byte `json:"rule,omitempty"`
-	Crc  uint32 `json:"crc,omitempty"` //rule 的crc
+	Crc  uint32 `json:"crc,omitempty"` // rule 的crc
 }
 
 // private func
@@ -73,16 +74,16 @@ func (I *Engine) isOnlyForLog() bool {
 
 // hasConfiged check whether the engine has been configed
 func (I *Engine) hasConfiged() bool {
-	return I.isConfiged
+	return I.isConfigured
 }
 
 // postLoadConfig will load config object
 func (I *Engine) postLoadConfig() error {
 	if I.confObj.Global.MaxLogInput > 0 {
-		DEF_MAX_LOG_INPUT = I.confObj.Global.MaxLogInput
+		DefaultMaxLogInput = I.confObj.Global.MaxLogInput
 	}
 	if I.confObj.Global.MaxRegexRuleID > 0 {
-		DEF_MAX_REGEX_RULE_ID = I.confObj.Global.MaxRegexRuleID
+		DefaultMaxRegexRuleID = I.confObj.Global.MaxRegexRuleID
 	}
 	I.initLogger()
 	if err := I.loadDetector(); err != nil {
@@ -91,7 +92,7 @@ func (I *Engine) postLoadConfig() error {
 	if err := I.loadMaskWorker(); err != nil {
 		return err
 	}
-	I.isConfiged = true
+	I.isConfigured = true
 	return nil
 }
 
@@ -104,10 +105,10 @@ func (I *Engine) isDebugMode() bool {
 // in release mode, log level is ERROR and log message will be printed into stderr
 func (I *Engine) initLogger() error {
 	if I.isDebugMode() {
-		//log.SetLevel(0)
+		// log.SetLevel(0)
 		log.Debugf("DLP@%s run in debug mode", I.Version)
 	} else { // release mode
-		//log.SetLevel(log.LevelError)
+		// log.SetLevel(log.LevelError)
 	}
 	return nil
 }
@@ -139,16 +140,16 @@ func (I *Engine) loadMaskWorker() error {
 	return nil
 }
 
-// dfsJSON walk a json object, used for DetectJSON and DeidentifyJSON
-// in DetectJSON(), isDeidentify is false, kvMap is write only, will store json object path and value
-// in DeidentifyJSON(), isDeidentify is true, kvMap is read only, will store path and MaskText of sensitive information
-func (I *Engine) dfsJSON(path string, ptr *interface{}, kvMap map[string]string, isDeidentify bool) interface{} {
+// dfsJSON walk a json object, used for DetectJSON and DeIdentifyJSON
+// in DetectJSON(), isDeIdentify is false, kvMap is write only, will store json object path and value
+// in DeIdentifyJSON(), isDeIdentify is true, kvMap is read only, will store path and MaskText of sensitive information
+func (I *Engine) dfsJSON(path string, ptr *interface{}, kvMap map[string]string, isDeIdentify bool) interface{} {
 	path = strings.ToLower(path)
 	switch (*ptr).(type) {
 	case map[string]interface{}:
 		for k, v := range (*ptr).(map[string]interface{}) {
 			subpath := path + "/" + k
-			(*ptr).(map[string]interface{})[k] = I.dfsJSON(subpath, &v, kvMap, isDeidentify)
+			(*ptr).(map[string]interface{})[k] = I.dfsJSON(subpath, &v, kvMap, isDeIdentify)
 		}
 	case []interface{}:
 		for i, v := range (*ptr).([]interface{}) {
@@ -158,7 +159,7 @@ func (I *Engine) dfsJSON(path string, ptr *interface{}, kvMap map[string]string,
 			} else {
 				subpath = fmt.Sprintf("%s[%d]", path, i)
 			}
-			(*ptr).([]interface{})[i] = I.dfsJSON(subpath, &v, kvMap, isDeidentify)
+			(*ptr).([]interface{})[i] = I.dfsJSON(subpath, &v, kvMap, isDeIdentify)
 		}
 	case string:
 		var subObj interface{}
@@ -166,7 +167,7 @@ func (I *Engine) dfsJSON(path string, ptr *interface{}, kvMap map[string]string,
 			// try nested json Unmarshal
 			if I.maybeJSON(val) {
 				if err := json.Unmarshal([]byte(val), &subObj); err == nil {
-					obj := I.dfsJSON(path, &subObj, kvMap, isDeidentify)
+					obj := I.dfsJSON(path, &subObj, kvMap, isDeIdentify)
 					if ret, err := json.Marshal(obj); err == nil {
 						retStr := string(ret)
 						return retStr
@@ -175,7 +176,7 @@ func (I *Engine) dfsJSON(path string, ptr *interface{}, kvMap map[string]string,
 					}
 				}
 			} else { // plain text
-				if isDeidentify {
+				if isDeIdentify {
 					if mask, ok := kvMap[path]; ok {
 						return mask
 					} else {

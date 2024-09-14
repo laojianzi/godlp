@@ -38,7 +38,7 @@ func TestRule(t *testing.T) {
 			if eng, err := NewEngine("replace.your.psm"); err == nil {
 				eng.ApplyConfigDefault()
 				for _, item := range ruleTestPtr.TestList {
-					if out, results, err := eng.Deidentify(item.In); err == nil {
+					if out, results, err := eng.DeIdentify(item.In); err == nil {
 						if len(results) == 0 && item.RuleID == 0 { // no sensitive info found, it's ok
 							// check ok
 							continue
@@ -51,7 +51,7 @@ func TestRule(t *testing.T) {
 							if len(results) >= 1 {
 								resultId = results[0].RuleID
 							}
-							t.Errorf("Error RuleId: %d, in: %s, out: %s, Deidentify: %s, Results RuleId: %d", item.RuleID, item.In, item.Out, out, resultId)
+							t.Errorf("Error RuleId: %d, in: %s, out: %s, DeIdentify: %s, Results RuleId: %d", item.RuleID, item.In, item.Out, out, resultId)
 							eng.ShowResults(results)
 						}
 					} else {
@@ -72,7 +72,7 @@ func TestRule(t *testing.T) {
 	}
 }
 
-func TestDeidentifyJSONByResult(t *testing.T) {
+func TestDeIdentifyJSONByResult(t *testing.T) {
 	jsonBody := `
 				{
 					"name": "abcdefg",
@@ -95,8 +95,8 @@ func TestDeidentifyJSONByResult(t *testing.T) {
 		t.Error(err)
 	}
 
-	// deidentify the original text
-	out, err := eng.DeidentifyJSONByResult(jsonBody, detectRes)
+	// de identify the original text
+	out, err := eng.DeIdentifyJSONByResult(jsonBody, detectRes)
 	if err != nil {
 		t.Error(err)
 	}
@@ -116,7 +116,7 @@ func TestDeidentifyJSONByResult(t *testing.T) {
 	}
 
 	// apply the new rule on the original text
-	out, err = eng.DeidentifyJSONByResult(jsonBody, detectRes)
+	out, err = eng.DeIdentifyJSONByResult(jsonBody, detectRes)
 	if err != nil {
 		t.Error(err)
 	}
@@ -128,7 +128,7 @@ func TestDeidentifyJSONByResult(t *testing.T) {
 
 	// apply the rule UID on a JSON text which doesn't have an UID
 	jsonBody = "{\"name\":\"abcdefg\"}"
-	out, err = eng.DeidentifyJSONByResult(jsonBody, detectRes)
+	out, err = eng.DeIdentifyJSONByResult(jsonBody, detectRes)
 	if err != nil {
 		t.Error(err)
 	}

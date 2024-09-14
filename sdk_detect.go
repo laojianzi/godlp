@@ -28,8 +28,8 @@ func (I *Engine) Detect(inputText string) (retResults []*dlpheader.DetectResult,
 	if I.hasClosed() {
 		return nil, errlist.ERR_PROCESS_AFTER_CLOSE
 	}
-	if len(inputText) > DEF_MAX_INPUT {
-		return nil, fmt.Errorf("DEF_MAX_INPUT: %d , %w", DEF_MAX_INPUT, errlist.ERR_MAX_INPUT_LIMIT)
+	if len(inputText) > DefaultMaxInput {
+		return nil, fmt.Errorf("DefaultMaxInput: %d , %w", DefaultMaxInput, errlist.ERR_MAX_INPUT_LIMIT)
 	}
 	retResults, retErr = I.detectImpl(inputText)
 	return
@@ -46,8 +46,8 @@ func (I *Engine) DetectMap(inputMap map[string]string) (retResults []*dlpheader.
 	if I.hasClosed() {
 		return nil, errlist.ERR_PROCESS_AFTER_CLOSE
 	}
-	if len(inputMap) > DEF_MAX_ITEM {
-		return nil, fmt.Errorf("DEF_MAX_ITEM: %d , %w", DEF_MAX_ITEM, errlist.ERR_MAX_INPUT_LIMIT)
+	if len(inputMap) > DefaultMaxItem {
+		return nil, fmt.Errorf("DefaultMaxItem: %d , %w", DefaultMaxItem, errlist.ERR_MAX_INPUT_LIMIT)
 	}
 	inMap := make(map[string]string)
 	for k, v := range inputMap {
@@ -77,9 +77,9 @@ func (I *Engine) DetectJSON(jsonText string) (retResults []*dlpheader.DetectResu
 
 // detectImpl works for the Detect API
 func (I *Engine) detectImpl(inputText string) ([]*dlpheader.DetectResult, error) {
-	rd := bufio.NewReaderSize(strings.NewReader(inputText), DEF_LineBlockSize)
+	rd := bufio.NewReaderSize(strings.NewReader(inputText), DefaultLineBlockSize)
 	currPos := 0
-	results := make([]*dlpheader.DetectResult, 0, DEF_RESULT_SIZE)
+	results := make([]*dlpheader.DetectResult, 0, DefaultResultSize)
 	for {
 		line, err := rd.ReadBytes('\n')
 		if len(line) > 0 {
@@ -91,7 +91,7 @@ func (I *Engine) detectImpl(inputText string) ([]*dlpheader.DetectResult, error)
 		}
 		if err != nil {
 			if err != io.EOF {
-				//show err
+				// show err
 			}
 			break
 		}
@@ -120,13 +120,13 @@ func (I *Engine) detectProcess(line []byte) []*dlpheader.DetectResult {
 
 // detectBytes detects for a line
 func (I *Engine) detectBytes(line []byte) ([]*dlpheader.DetectResult, error) {
-	results := make([]*dlpheader.DetectResult, 0, DEF_RESULT_SIZE)
+	results := make([]*dlpheader.DetectResult, 0, DefaultResultSize)
 	var retErr error
-	//start := time.Now()
+	// start := time.Now()
 	for _, obj := range I.detectorMap {
 		if obj != nil && obj.IsValue() {
 			if I.isOnlyForLog() { // used in log processor mod, need very efficient
-				if obj.GetRuleID() > DEF_MAX_REGEX_RULE_ID && obj.UseRegex() { // if ID>MAX and rule uses regex
+				if obj.GetRuleID() > DefaultMaxRegexRuleID && obj.UseRegex() { // if ID>MAX and rule uses regex
 					continue // will not use this rule in log processor mod
 				}
 			}
@@ -137,7 +137,7 @@ func (I *Engine) detectBytes(line []byte) ([]*dlpheader.DetectResult, error) {
 			results = append(results, res...)
 		}
 	}
-	//fmt.Printf("check rule:%d, len:%d, cast:%v\n", len(I.detectorMap), len(line), time.Since(start))
+	// fmt.Printf("check rule:%d, len:%d, cast:%v\n", len(I.detectorMap), len(line), time.Since(start))
 
 	// the last error will be returned
 	return results, retErr
@@ -145,7 +145,7 @@ func (I *Engine) detectBytes(line []byte) ([]*dlpheader.DetectResult, error) {
 
 // extractKVList extracts KV item into a returned list
 func (I *Engine) extractKVList(line []byte) []*detector.KVItem {
-	kvList := make([]*detector.KVItem, 0, DEF_RESULT_SIZE)
+	kvList := make([]*detector.KVItem, 0, DefaultResultSize)
 
 	sz := len(line)
 	for i := 0; i < sz; {
@@ -173,7 +173,7 @@ func (I *Engine) extractKVList(line []byte) []*detector.KVItem {
 				right, vPos = firstToken(line, i+width)
 				isFound = true
 			}
-			//log.Debugf("%s [%d,%d) = %s [%d,%d)", left, kPos[0], kPos[1], right, vPos[0], vPos[1])
+			// log.Debugf("%s [%d,%d) = %s [%d,%d)", left, kPos[0], kPos[1], right, vPos[0], vPos[1])
 			_ = kPos
 			if len(left) != 0 && len(right) != 0 {
 				loLeft := strings.ToLower(left)
@@ -203,14 +203,14 @@ func firstToken(line []byte, offset int) (string, []int) {
 		ed := sz
 		// find first non cutter
 		for i := offset; i < sz; i++ {
-			if strings.IndexByte(DEF_CUTTER, line[i]) == -1 {
+			if strings.IndexByte(DefaultCutter, line[i]) == -1 {
 				st = i
 				break
 			}
 		}
 		// find first cutter
 		for i := st + 1; i < sz; i++ {
-			if strings.IndexByte(DEF_CUTTER, line[i]) != -1 {
+			if strings.IndexByte(DefaultCutter, line[i]) != -1 {
 				ed = i
 				break
 			}
@@ -229,14 +229,14 @@ func lastToken(line []byte, offset int) (string, []int) {
 		ed := offset
 		// find first non cutter
 		for i := offset - 1; i >= 0; i-- {
-			if strings.IndexByte(DEF_CUTTER, line[i]) == -1 {
+			if strings.IndexByte(DefaultCutter, line[i]) == -1 {
 				ed = i + 1
 				break
 			}
 		}
 		// find first cutter
 		for i := ed - 1; i >= 0; i-- {
-			if strings.IndexByte(DEF_CUTTER, line[i]) != -1 {
+			if strings.IndexByte(DefaultCutter, line[i]) != -1 {
 				st = i + 1
 				break
 			}
@@ -249,12 +249,12 @@ func lastToken(line []byte, offset int) (string, []int) {
 
 // detectKVList accepts kvList to do detection
 func (I *Engine) detectKVList(kvList []*detector.KVItem) ([]*dlpheader.DetectResult, error) {
-	results := make([]*dlpheader.DetectResult, 0, DEF_RESULT_SIZE)
+	results := make([]*dlpheader.DetectResult, 0, DefaultResultSize)
 
 	for _, obj := range I.detectorMap {
 		if obj != nil && obj.IsKV() {
 			if I.isOnlyForLog() { // used in log processor mod, need very efficient
-				if obj.GetRuleID() > DEF_MAX_REGEX_RULE_ID && obj.UseRegex() { // if ID>MAX and rule uses regex
+				if obj.GetRuleID() > DefaultMaxRegexRuleID && obj.UseRegex() { // if ID>MAX and rule uses regex
 					continue // will not use this rule in log processor mod
 				}
 			}
@@ -390,7 +390,7 @@ func (I *Engine) maskResults(results []*dlpheader.DetectResult) []*dlpheader.Det
 			if maskWorker, ok := I.maskerMap[maskRuleName]; ok {
 				maskWorker.MaskResult(res)
 			} else { // Not Found
-				//log.Errorf(fmt.Errorf("MaskRuleName: %s, Error: %w", maskRuleName, errlist.ERR_MASK_RULE_NOTFOUND).Error())
+				// log.Errorf(fmt.Errorf("MaskRuleName: %s, Error: %w", maskRuleName, errlist.ERR_MASK_RULE_NOTFOUND).Error())
 				res.MaskText = res.Text
 			}
 		}
@@ -400,12 +400,12 @@ func (I *Engine) maskResults(results []*dlpheader.DetectResult) []*dlpheader.Det
 
 // detectMapImpl detect sensitive info for inputMap
 func (I *Engine) detectMapImpl(inputMap map[string]string) ([]*dlpheader.DetectResult, error) {
-	results := make([]*dlpheader.DetectResult, 0, DEF_RESULT_SIZE)
+	results := make([]*dlpheader.DetectResult, 0, DefaultResultSize)
 	for _, obj := range I.detectorMap {
 		if obj != nil {
 			res, err := obj.DetectMap(inputMap)
 			if err != nil {
-				//log.Errorf(err.Error())
+				// log.Errorf(err.Error())
 			}
 			results = append(results, res...)
 		}
@@ -434,13 +434,13 @@ func max(x, y int) int {
 func (I *Engine) detectJSONImpl(jsonText string) (retResults []*dlpheader.DetectResult, kvMap map[string]string, retErr error) {
 	var jsonObj interface{}
 	if err := json.Unmarshal([]byte(jsonText), &jsonObj); err == nil {
-		//fmt.Printf("%+v\n", jsonObj)
+		// fmt.Printf("%+v\n", jsonObj)
 		kvMap = make(map[string]string, 0)
 		I.dfsJSON("", &jsonObj, kvMap, false)
 		retResults, retErr = I.detectMapImpl(kvMap)
 		for _, item := range retResults {
 			if orig, ok := kvMap[item.Key]; ok {
-				if out, err := I.deidentifyByResult(orig, []*dlpheader.DetectResult{item}); err == nil {
+				if out, err := I.deIdentifyByResult(orig, []*dlpheader.DetectResult{item}); err == nil {
 					kvMap[item.Key] = out
 				}
 			}
@@ -459,12 +459,12 @@ func (I *Engine) detectJSONImpl(jsonText string) (retResults []*dlpheader.Detect
 func (I *Engine) replaceWideChar(lineArray []byte) []byte {
 	sz := len(lineArray)
 	for i := 0; i < sz; {
-		if (lineArray[i] & 0x80) != 0x80 { //ascii char
+		if (lineArray[i] & 0x80) != 0x80 { // ascii char
 			i++
 			continue
 		}
 		r, width := utf8.DecodeRune(lineArray[i:])
-		if width == 0 { //error
+		if width == 0 { // error
 			break
 		}
 		switch r {

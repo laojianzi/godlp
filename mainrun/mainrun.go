@@ -33,10 +33,10 @@ mac地址 06-06-06-aa-bb-cc
 			fmt.Printf("\t1. Detect( inStr: %s )\n", inStr)
 			eng.ShowResults(results)
 		}
-		if outStr, _, err := eng.Deidentify(inStr); err == nil {
-			fmt.Printf("\t2. Deidentify( inStr: %s )\n", inStr)
+		if outStr, _, err := eng.DeIdentify(inStr); err == nil {
+			fmt.Printf("\t2. DeIdentify( inStr: %s )\n", inStr)
 			fmt.Printf("\toutStr: %s\n", outStr)
-			//eng.ShowResults(results)
+			// eng.ShowResults(results)
 			fmt.Println()
 		}
 		inStr = `18612341234`
@@ -53,8 +53,8 @@ mac地址 06-06-06-aa-bb-cc
 			eng.ShowResults(results)
 		}
 
-		fmt.Printf("\t5. DeidentifyMap( inMap: %+v )\n", inMap)
-		if outMap, results, err := eng.DeidentifyMap(inMap); err == nil {
+		fmt.Printf("\t5. DeIdentifyMap( inMap: %+v )\n", inMap)
+		if outMap, results, err := eng.DeIdentifyMap(inMap); err == nil {
 			fmt.Printf("\toutMap: %+v\n", outMap)
 			eng.ShowResults(results)
 			fmt.Println()
@@ -66,16 +66,16 @@ mac地址 06-06-06-aa-bb-cc
 			fmt.Printf("\t6. DetectJSON( inJSON: %s )\n", inJSON)
 			eng.ShowResults(results)
 
-			if outJSON, err := eng.DeidentifyJSONByResult(inJSON, results); err == nil {
-				fmt.Printf("\t7. DeidentifyJSONByResult( inJSON: %s , results: %v )\n", inJSON, results)
+			if outJSON, err := eng.DeIdentifyJSONByResult(inJSON, results); err == nil {
+				fmt.Printf("\t7. DeIdentifyJSONByResult( inJSON: %s , results: %v )\n", inJSON, results)
 				fmt.Printf("\toutJSON: %s\n", outJSON)
 				eng.ShowResults(results)
 				fmt.Println()
 			}
 		}
 
-		if outJSON, results, err := eng.DeidentifyJSON(inJSON); err == nil {
-			fmt.Printf("\t7. DeidentifyJSON( inJSON: %s )\n", inJSON)
+		if outJSON, results, err := eng.DeIdentifyJSON(inJSON); err == nil {
+			fmt.Printf("\t7. DeIdentifyJSON( inJSON: %s )\n", inJSON)
 			fmt.Printf("\toutJSON: %s\n", outJSON)
 			eng.ShowResults(results)
 			fmt.Println()
@@ -115,7 +115,7 @@ mac地址 06-06-06-aa-bb-cc
 		}
 
 		inStr = "loginfo:[ uid:10086, phone:18612341234]"
-		if outStr, results, err := eng.Deidentify(inStr); err == nil {
+		if outStr, results, err := eng.DeIdentify(inStr); err == nil {
 			fmt.Printf("\t10. Detect( inStr: %s )\n", inStr)
 			eng.ShowResults(results)
 			fmt.Printf("\toutStr: %s\n", outStr)
@@ -169,7 +169,7 @@ mac地址 06-06-06-aa-bb-cc
 		} else {
 			fmt.Println(err.Error())
 		}
-		//fmt.Println(eng.GetDefaultConf())
+		// fmt.Println(eng.GetDefaultConf())
 		eng.Close()
 	} else {
 		fmt.Println("[dlp] NewEngine error: ", err.Error())

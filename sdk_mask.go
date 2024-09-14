@@ -3,10 +3,11 @@ package dlp
 
 import (
 	"fmt"
+	"reflect"
+
 	"github.com/bytedance/godlp/dlpheader"
 	"github.com/bytedance/godlp/errlist"
 	"github.com/bytedance/godlp/mask"
-	"reflect"
 )
 
 // public func
@@ -20,8 +21,8 @@ func (I *Engine) Mask(inputText string, methodName string) (outputText string, e
 	if I.hasClosed() {
 		return "", errlist.ERR_PROCESS_AFTER_CLOSE
 	}
-	if len(inputText) > DEF_MAX_INPUT {
-		return inputText, fmt.Errorf("DEF_MAX_INPUT: %d , %w", DEF_MAX_INPUT, errlist.ERR_MAX_INPUT_LIMIT)
+	if len(inputText) > DefaultMaxInput {
+		return inputText, fmt.Errorf("DefaultMaxInput: %d , %w", DefaultMaxInput, errlist.ERR_MAX_INPUT_LIMIT)
 	}
 	if maskWorker, ok := I.maskerMap[methodName]; ok {
 		return maskWorker.Mask(inputText)
@@ -45,7 +46,7 @@ func (I *Engine) MaskStruct(inPtr interface{}) (outPtr interface{}, retErr error
 	if inPtr == nil {
 		return nil, errlist.ERR_MASK_STRUCT_INPUT
 	}
-	outPtr, retErr = I.maskStructImpl(inPtr, DEF_MAX_CALL_DEEP)
+	outPtr, retErr = I.maskStructImpl(inPtr, DefaultMaxCallDeep)
 	return
 }
 
@@ -110,10 +111,10 @@ func (I *Engine) NewDIYMaskWorker(maskName string, maskFunc func(string) (string
 // maskStructImpl will mask a strcut object by tag mask info
 // 根据tag mask里定义的脱敏规则对struct object直接脱敏, 会修改obj本身，传入指针，返回指针
 func (I *Engine) maskStructImpl(inPtr interface{}, level int) (interface{}, error) {
-	//log.Errorf("[DLP] level:%d, maskStructImpl: %+v", level, inPtr)
+	// log.Errorf("[DLP] level:%d, maskStructImpl: %+v", level, inPtr)
 	if level <= 0 { // call deep check
-		//log.Errorf("[DLP] !call deep loop detected!")
-		//log.Errorf("obj: %+v", inPtr)
+		// log.Errorf("[DLP] !call deep loop detected!")
+		// log.Errorf("obj: %+v", inPtr)
 		return inPtr, nil
 	}
 	valPtr := reflect.ValueOf(inPtr)
@@ -125,8 +126,8 @@ func (I *Engine) maskStructImpl(inPtr interface{}, level int) (interface{}, erro
 	if val.CanSet() {
 		if val.Kind() == reflect.Struct {
 			sz := val.NumField()
-			if sz > DEF_MAX_INPUT {
-				return inPtr, fmt.Errorf("DEF_MAX_INPUT: %d , %w", DEF_MAX_INPUT, errlist.ERR_MAX_INPUT_LIMIT)
+			if sz > DefaultMaxInput {
+				return inPtr, fmt.Errorf("DefaultMaxInput: %d , %w", DefaultMaxInput, errlist.ERR_MAX_INPUT_LIMIT)
 			}
 			for i := 0; i < sz; i++ {
 				valField := val.Field(i)
@@ -150,12 +151,12 @@ func (I *Engine) maskStructImpl(inPtr interface{}, level int) (interface{}, erro
 						}
 					case reflect.Struct:
 						if valField.CanAddr() {
-							//log.Errorf("[DLP] Struct, %s", typeField.Name)
+							// log.Errorf("[DLP] Struct, %s", typeField.Name)
 							_, retErr = I.maskStructImpl(valField.Addr().Interface(), level-1)
 						}
 					case reflect.Ptr:
 						if !valField.IsNil() {
-							//log.Errorf("[DLP] Ptr, %s", typeField.Name)
+							// log.Errorf("[DLP] Ptr, %s", typeField.Name)
 							_, retErr = I.maskStructImpl(valField.Interface(), level-1)
 						}
 					case reflect.Interface:
@@ -195,12 +196,12 @@ func (I *Engine) maskStructImpl(inPtr interface{}, level int) (interface{}, erro
 								}
 							} else if item.Kind() == reflect.Ptr {
 								if !item.IsNil() {
-									//log.Errorf("[DLP] Ptr, %s", item.Type().Name())
+									// log.Errorf("[DLP] Ptr, %s", item.Type().Name())
 									_, retErr = I.maskStructImpl(item.Interface(), level-1)
 								}
 							} else if item.Kind() == reflect.Struct {
 								if item.CanAddr() {
-									//log.Errorf("[DLP] Struct, %s", item.Type().Name())
+									// log.Errorf("[DLP] Struct, %s", item.Type().Name())
 									_, retErr = I.maskStructImpl(item.Addr().Interface(), level-1)
 								}
 							}

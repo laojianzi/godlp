@@ -1,4 +1,4 @@
-// Package dlp sdkdeidentify.go implements deidentify related APIs
+// Package dlp sdk deIdentify.go implements deIdentify related APIs
 package dlp
 
 import (
@@ -9,10 +9,10 @@ import (
 	"github.com/bytedance/godlp/errlist"
 )
 
-// public func
-// Deidentify detects string firstly, then return masked string and results
+// DeIdentify detects string firstly, then return masked string and results
 // 对string先识别，然后按规则进行打码
-func (I *Engine) Deidentify(inputText string) (outputText string, retResults []*dlpheader.DetectResult, retErr error) {
+// public func
+func (I *Engine) DeIdentify(inputText string) (outputText string, retResults []*dlpheader.DetectResult, retErr error) {
 	defer I.recoveryImpl()
 	if !I.hasConfiged() { // not configed
 		panic(errlist.ERR_HAS_NOT_CONFIGED)
@@ -23,16 +23,16 @@ func (I *Engine) Deidentify(inputText string) (outputText string, retResults []*
 	if I.isOnlyForLog() {
 		return inputText, nil, errlist.ERR_ONLY_FOR_LOG
 	}
-	if len(inputText) > DEF_MAX_INPUT {
-		return inputText, nil, fmt.Errorf("DEF_MAX_INPUT: %d , %w", DEF_MAX_INPUT, errlist.ERR_MAX_INPUT_LIMIT)
+	if len(inputText) > DefaultMaxInput {
+		return inputText, nil, fmt.Errorf("DefaultMaxInput: %d , %w", DefaultMaxInput, errlist.ERR_MAX_INPUT_LIMIT)
 	}
-	outputText, retResults, retErr = I.deidentifyImpl(inputText)
+	outputText, retResults, retErr = I.deIdentifyImpl(inputText)
 	return
 }
 
-// DeidentifyMap detects KV map firstly,then return masked map
+// DeIdentifyMap detects KV map firstly,then return masked map
 // 对map[string]string先识别，然后按规则进行打码
-func (I *Engine) DeidentifyMap(inputMap map[string]string) (outMap map[string]string, retResults []*dlpheader.DetectResult, retErr error) {
+func (I *Engine) DeIdentifyMap(inputMap map[string]string) (outMap map[string]string, retResults []*dlpheader.DetectResult, retErr error) {
 	defer I.recoveryImpl()
 
 	if !I.hasConfiged() { // not configed
@@ -41,16 +41,16 @@ func (I *Engine) DeidentifyMap(inputMap map[string]string) (outMap map[string]st
 	if I.hasClosed() {
 		return nil, nil, errlist.ERR_PROCESS_AFTER_CLOSE
 	}
-	if len(inputMap) > DEF_MAX_ITEM {
-		return inputMap, nil, fmt.Errorf("DEF_MAX_ITEM: %d , %w", DEF_MAX_ITEM, errlist.ERR_MAX_INPUT_LIMIT)
+	if len(inputMap) > DefaultMaxItem {
+		return inputMap, nil, fmt.Errorf("DefaultMaxItem: %d , %w", DefaultMaxItem, errlist.ERR_MAX_INPUT_LIMIT)
 	}
-	outMap, retResults, retErr = I.deidentifyMapImpl(inputMap)
+	outMap, retResults, retErr = I.deIdentifyMapImpl(inputMap)
 	return
 }
 
-// DeidentifyJSON detects JSON firstly, then return masked json object in string format and results
+// DeIdentifyJSON detects JSON firstly, then return masked json object in string format and results
 // 对jsonText先识别，然后按规则进行打码，返回打码后的JSON string
-func (I *Engine) DeidentifyJSON(jsonText string) (outStr string, retResults []*dlpheader.DetectResult, retErr error) {
+func (I *Engine) DeIdentifyJSON(jsonText string) (outStr string, retResults []*dlpheader.DetectResult, retErr error) {
 	defer I.recoveryImpl()
 
 	if !I.hasConfiged() { // not configed
@@ -64,7 +64,7 @@ func (I *Engine) DeidentifyJSON(jsonText string) (outStr string, retResults []*d
 		retResults = results
 		var jsonObj interface{}
 		if err := json.Unmarshal([]byte(jsonText), &jsonObj); err == nil {
-			//kvMap := I.resultsToMap(results)
+			// kvMap := I.resultsToMap(results)
 			outObj := I.dfsJSON("", &jsonObj, kvMap, true)
 			if outJSON, err := json.Marshal(outObj); err == nil {
 				outStr = string(outJSON)
@@ -80,10 +80,10 @@ func (I *Engine) DeidentifyJSON(jsonText string) (outStr string, retResults []*d
 	return
 }
 
-// DeidentifyJSONByResult  returns masked json object in string format from the passed-in []*dlpheader.DetectResult.
+// DeIdentifyJSONByResult  returns masked json object in string format from the passed-in []*dlpheader.DetectResult.
 // You may want to call DetectJSON first to obtain the []*dlpheader.DetectResult.
 // 根据传入的 []*dlpheader.DetectResult 对 Json 进行打码，返回打码后的JSON string
-func (I *Engine) DeidentifyJSONByResult(jsonText string, detectResults []*dlpheader.DetectResult) (outStr string, retErr error) {
+func (I *Engine) DeIdentifyJSONByResult(jsonText string, detectResults []*dlpheader.DetectResult) (outStr string, retErr error) {
 	defer I.recoveryImpl()
 	// have to use closure to pass retResults parameters
 	if !I.hasConfiged() { // not configed
@@ -109,13 +109,13 @@ func (I *Engine) DeidentifyJSONByResult(jsonText string, detectResults []*dlphea
 	return
 }
 
+// deIdentifyImpl implements DeIdentify string
 // private func
-// deidentifyImpl implements Deidentify string
-func (I *Engine) deidentifyImpl(inputText string) (outputText string, retResults []*dlpheader.DetectResult, retErr error) {
+func (I *Engine) deIdentifyImpl(inputText string) (outputText string, retResults []*dlpheader.DetectResult, retErr error) {
 	outputText = inputText // default same text
 	if arr, err := I.detectImpl(inputText); err == nil {
 		retResults = arr
-		if out, err := I.deidentifyByResult(inputText, retResults); err == nil {
+		if out, err := I.deIdentifyByResult(inputText, retResults); err == nil {
 			outputText = out
 		} else {
 			retErr = err
@@ -126,8 +126,8 @@ func (I *Engine) deidentifyImpl(inputText string) (outputText string, retResults
 	return
 }
 
-// deidentifyMapImpl implements DeidentifyMap
-func (I *Engine) deidentifyMapImpl(inputMap map[string]string) (outMap map[string]string, retResults []*dlpheader.DetectResult, retErr error) {
+// deIdentifyMapImpl implements DeIdentifyMap
+func (I *Engine) deIdentifyMapImpl(inputMap map[string]string) (outMap map[string]string, retResults []*dlpheader.DetectResult, retErr error) {
 	outMap = make(map[string]string)
 	if results, err := I.detectMapImpl(inputMap); err == nil {
 		if len(results) == 0 { // detect nothing
@@ -136,7 +136,7 @@ func (I *Engine) deidentifyMapImpl(inputMap map[string]string) (outMap map[strin
 			outMap = inputMap
 			for _, item := range results {
 				if orig, ok := outMap[item.Key]; ok {
-					if out, err := I.deidentifyByResult(orig, []*dlpheader.DetectResult{item}); err == nil {
+					if out, err := I.deIdentifyByResult(orig, []*dlpheader.DetectResult{item}); err == nil {
 						outMap[item.Key] = out
 					}
 				}
@@ -150,8 +150,8 @@ func (I *Engine) deidentifyMapImpl(inputMap map[string]string) (outMap map[strin
 	return
 }
 
-// deidentifyByResult concatenate MaskText
-func (I *Engine) deidentifyByResult(in string, arr []*dlpheader.DetectResult) (string, error) {
+// deIdentifyByResult concatenate MaskText
+func (I *Engine) deIdentifyByResult(in string, arr []*dlpheader.DetectResult) (string, error) {
 	out := make([]byte, 0, len(in)+8)
 	pos := 0
 	inArr := S2B(in)

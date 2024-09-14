@@ -35,7 +35,7 @@ func BenchmarkEngine_ApplyConfigDefault(b *testing.B) {
 	}
 }
 
-func BenchmarkEngine_Deidentify1k(b *testing.B) {
+func BenchmarkEngine_DeIdentify1k(b *testing.B) {
 	text := Read("./testcases/test_1k.txt")
 	eng, err := NewEngine(CallerSys)
 	eng.ApplyConfigDefault()
@@ -47,11 +47,11 @@ func BenchmarkEngine_Deidentify1k(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		eng.Deidentify(text)
+		eng.DeIdentify(text)
 	}
 }
 
-func BenchmarkEngine_Deidentify10k(b *testing.B) {
+func BenchmarkEngine_DeIdentify10k(b *testing.B) {
 
 	src := Read("./testcases/test_1k.txt")
 	text := dupString(src, 10)
@@ -65,11 +65,11 @@ func BenchmarkEngine_Deidentify10k(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		eng.Deidentify(text)
+		eng.DeIdentify(text)
 	}
 }
 
-func BenchmarkEngine_Deidentify100k(b *testing.B) {
+func BenchmarkEngine_DeIdentify100k(b *testing.B) {
 
 	src := Read("./testcases/test_1k.txt")
 	text := dupString(src, 100)
@@ -83,11 +83,11 @@ func BenchmarkEngine_Deidentify100k(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		eng.Deidentify(text)
+		eng.DeIdentify(text)
 	}
 }
 
-func BenchmarkEngine_Deidentify1m(b *testing.B) {
+func BenchmarkEngine_DeIdentify1m(b *testing.B) {
 
 	src := Read("./testcases/test_1k.txt")
 	text := dupString(src, 1000)
@@ -101,11 +101,11 @@ func BenchmarkEngine_Deidentify1m(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		eng.Deidentify(text)
+		eng.DeIdentify(text)
 	}
 }
 
-func BenchmarkEngine_DeidentifyJSON1k(b *testing.B) {
+func BenchmarkEngine_DeIdentifyJSON1k(b *testing.B) {
 
 	text := Read("./testcases/test_json_1k.txt")
 	eng, err := NewEngine(CallerSys)
@@ -117,14 +117,14 @@ func BenchmarkEngine_DeidentifyJSON1k(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, _, err = eng.DeidentifyJSON(text)
+		_, _, err = eng.DeIdentifyJSON(text)
 		if err != nil {
 			b.Fail()
 		}
 	}
 }
 
-func BenchmarkEngine_DeidentifyJSON10k(b *testing.B) {
+func BenchmarkEngine_DeIdentifyJSON10k(b *testing.B) {
 
 	src := Read("./testcases/test_json_1k.txt")
 	text, err := dupJson(src, 10)
@@ -141,10 +141,10 @@ func BenchmarkEngine_DeidentifyJSON10k(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		eng.DeidentifyJSON(text)
+		eng.DeIdentifyJSON(text)
 	}
 }
-func BenchmarkEngine_DeidentifyJSON100k(b *testing.B) {
+func BenchmarkEngine_DeIdentifyJSON100k(b *testing.B) {
 
 	src := Read("./testcases/test_json_1k.txt")
 	text, err := dupJson(src, 100)
@@ -157,13 +157,13 @@ func BenchmarkEngine_DeidentifyJSON100k(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, _, err = eng.DeidentifyJSON(text)
+		_, _, err = eng.DeIdentifyJSON(text)
 		if err != nil {
 			b.Fatal(err)
 		}
 	}
 }
-func BenchmarkEngine_DeidentifyJSON1m(b *testing.B) {
+func BenchmarkEngine_DeIdentifyJSON1m(b *testing.B) {
 
 	src := Read("./testcases/test_json_1k.txt")
 	text, err := dupJson(src, 1000)
@@ -176,14 +176,14 @@ func BenchmarkEngine_DeidentifyJSON1m(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		eng.DeidentifyJSON(text)
+		eng.DeIdentifyJSON(text)
 	}
 }
 
 func check(e error) {
 	if e != nil {
 		fmt.Println(e.Error())
-		//panic(e)
+		// panic(e)
 
 	}
 }
@@ -199,7 +199,7 @@ func checkFileIsExist(filename string) bool {
 	return exist
 }
 
-//读取到file中，再利用ioutil将file直接读取到[]byte中, 这是最优
+// 读取到file中，再利用ioutil将file直接读取到[]byte中, 这是最优
 func Read(filepath string) string {
 	f, err := os.Open(filepath)
 	if err != nil {
