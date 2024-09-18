@@ -1,0 +1,74 @@
+run:
+  concurrency: 4
+  timeout: 5m
+  issues-exit-code: 2
+  tests: true
+  modules-download-mode: readonly
+  allow-parallel-runners: true
+  allow-serial-runners: true
+  go: '1.18'
+
+output:
+  sort-results: true
+  sort-order:
+    - linter
+    - severity
+    - file # filepath, line, and column.
+  show-stats: true
+
+linters:
+  disable:
+    - godot
+    - forcetypeassert
+    - wsl
+    - tagliatelle
+    - nolintlint
+    - nlreturn
+    - mnd
+    - gci
+  presets:
+    - bugs
+    - comment
+    - complexity
+    - error
+    - format
+    - import
+    - metalinter
+    - module
+    - performance
+    - sql
+    - style
+    - test
+    - unused
+
+  fast: true
+
+linters-settings:
+  testpackage:
+    allow-packages:
+      - example
+      - main
+      - parser
+
+  depguard:
+    rules:
+      main:
+        allow:
+          - $gostd
+          - github.com/laojianzi/godlp
+
+  funlen:
+    ignore-comments: true
+
+issues:
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - funlen
+        - lll
+        - gocognit
+        - maintidx
+
+    - path: parser/token.go
+      linters:
+        - gochecknoinits

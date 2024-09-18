@@ -5,6 +5,7 @@ import (
 	_ "embed"
 	"fmt"
 	"reflect"
+	"sort"
 	"strings"
 	"unsafe"
 
@@ -52,13 +53,13 @@ var (
 type Engine struct {
 	Version      string
 	callerID     string
-	endPoint     string
-	accessKey    string
-	secretKey    string
-	isLegal      bool // true: auth is ok, false: auth failed
-	isClosed     bool // true: Close() has been called
-	isForLog     bool // true: NewLogProcessor() has been called, will not do other API
-	isConfigured bool // true: ApplyConfig* API has been called, false: not been called
+	endPoint     string // nolint: unused
+	accessKey    string // nolint: unused
+	secretKey    string // nolint: unused
+	isLegal      bool   // true: auth is ok, false: auth failed
+	isClosed     bool   // true: Close() has been called
+	isForLog     bool   // true: NewLogProcessor() has been called, will not do other API
+	isConfigured bool   // true: ApplyConfig* API has been called, false: not been called
 	confObj      *conf.DlpConf
 	detectorMap  map[int32]detector.API
 	maskerMap    map[string]mask.API
@@ -106,8 +107,16 @@ func (I *Engine) Close() {
 // 打印识别结果
 func (I *Engine) ShowResults(results []*header.DetectResult) {
 	defer I.recoveryImpl()
+
 	logger.Debugf("\n")
 	logger.Debugf("\tTotal Results: %d\n", len(results))
+	sort.Slice(results, func(i, j int) bool {
+		if results[i].RuleID == results[j].RuleID {
+			return results[i].Text < results[j].Text
+		}
+
+		return results[i].RuleID < results[j].RuleID
+	})
 	content, _ := json.Marshal(results)
 	logger.Debugf("%s\n", string(content))
 }
@@ -215,11 +224,11 @@ func (I *Engine) DisableAllRules() error {
 // interfaceToStr converts interface to string
 func (I *Engine) interfaceToStr(in interface{}) string {
 	out := ""
-	switch in.(type) {
+	switch v := in.(type) {
 	case []byte:
-		out = string(in.([]byte))
+		out = string(v)
 	case string:
-		out = in.(string)
+		out = v
 	default:
 		out = fmt.Sprint(in)
 	}
@@ -236,6 +245,8 @@ func (I *Engine) loadDefCfg() error {
 }
 
 // formatEndPoint formats endpoint
+//
+// nolint: unused
 func (I *Engine) formatEndPoint(endpoint string) string {
 	out := endpoint
 	if !strings.HasPrefix(endpoint, "http") { // not( http or https)
@@ -251,9 +262,9 @@ func B2S(b []byte) string {
 
 func S2B(s string) (b []byte) {
 	/* #nosec G103 */
-	bh := (*reflect.SliceHeader)(unsafe.Pointer(&b))
+	bh := (*reflect.SliceHeader)(unsafe.Pointer(&b)) // nolint: govet
 	/* #nosec G103 */
-	sh := *(*reflect.StringHeader)(unsafe.Pointer(&s))
+	sh := *(*reflect.StringHeader)(unsafe.Pointer(&s)) // nolint: govet
 	bh.Data = sh.Data
 	bh.Len = sh.Len
 	bh.Cap = sh.Len

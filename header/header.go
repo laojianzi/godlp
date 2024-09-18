@@ -59,6 +59,40 @@ type Processor func(rawLog string, kvs ...interface{}) (string, []interface{}, b
 
 // EngineAPI is a collection of DLP APIs
 type EngineAPI interface {
+	// EngineConfAPI conf apis
+	EngineConfAPI
+
+	// EngineDetectAPI detect apis
+	EngineDetectAPI
+
+	// EngineDeIdentifyAPI de identify apis
+	EngineDeIdentifyAPI
+
+	// EngineProcessorAPI processor apis
+	EngineProcessorAPI
+
+	// EngineMaskAPI mask apis
+	EngineMaskAPI
+
+	// ShowResults print results in console
+	// 打印识别结果
+	ShowResults(resultArray []*DetectResult)
+
+	// Close engine object, release memory of inner object
+	// 关闭，释放内部变量
+	Close()
+
+	// GetVersion Get Dlp SDK version string
+	// 获取版本号
+	GetVersion() string
+
+	// DisableAllRules will disable all rules, only used for benchmark baseline
+	// 业务禁止使用
+	DisableAllRules() error
+}
+
+// EngineConfAPI is a collection of dlp config APIs
+type EngineConfAPI interface {
 	// ApplyConfig by configuration content
 	// 传入conf string 进行配置
 	ApplyConfig(conf string) error
@@ -67,6 +101,21 @@ type EngineAPI interface {
 	// 传入filePath 进行配置
 	ApplyConfigFile(filePath string) error
 
+	// ShowDlpConf will print config file
+	// 打印配置文件
+	ShowDlpConf() error
+
+	// GetDefaultConf will return default config string
+	// 返回默认的conf string
+	GetDefaultConf() string
+
+	// ApplyConfigDefault will use embedded local config, only used for DLP team
+	// 业务禁止使用
+	ApplyConfigDefault() error
+}
+
+// EngineDetectAPI is a collection of dlp detect APIs
+type EngineDetectAPI interface {
 	// Detect string
 	// 对string进行敏感信息识别
 	Detect(inputText string) ([]*DetectResult, error)
@@ -78,7 +127,10 @@ type EngineAPI interface {
 	// DetectJSON detects json string
 	// 对json string 进行敏感信息识别
 	DetectJSON(jsonText string) ([]*DetectResult, error)
+}
 
+// EngineDeIdentifyAPI is a collection of dlp de identify APIs
+type EngineDeIdentifyAPI interface {
 	// DeIdentifyJSONByResult  returns masked json object in string format from the passed-in []*DetectResult.
 	// You may want to call DetectJSON first to obtain the []*DetectResult.
 	// 根据传入的 []*DetectResult 对 Json 进行打码，返回打码后的JSON string
@@ -95,11 +147,22 @@ type EngineAPI interface {
 	// DeIdentifyJSON detects JSON firstly, then return masked json object in string format and results
 	// 对jsonText先识别，然后按规则进行打码，返回打码后的JSON string
 	DeIdentifyJSON(jsonText string) (string, []*DetectResult, error)
+}
 
-	// ShowResults print results in console
-	// 打印识别结果
-	ShowResults(resultArray []*DetectResult)
+// EngineProcessorAPI is a collection of dlp processor APIs
+type EngineProcessorAPI interface {
+	// NewLogProcessor create a log processor for the package logs
+	// 日志脱敏处理函数，调用过之后，eng只能用于log处理，因为规则会做专门的优化，不适合其他API使用
+	// 最大输入1KB, 16 items, 预计最高200QPS，超出会截断日志，CPU也会相应升高，业务需要特别关注。
+	NewLogProcessor() Processor
 
+	// NewEmptyLogProcessor will new a log processor which will do nothing
+	// 业务禁止使用
+	NewEmptyLogProcessor() Processor
+}
+
+// EngineMaskAPI is a collection of dlp mask APIs
+type EngineMaskAPI interface {
 	// Mask inputText following predefined method of MaskRules in config
 	// 根据脱敏规则直接脱敏
 	Mask(inputText string, methodName string) (string, error)
@@ -108,41 +171,9 @@ type EngineAPI interface {
 	// 根据tag mask里定义的脱敏规则对struct object直接脱敏，必须传入指针
 	MaskStruct(inObj interface{}) (interface{}, error)
 
-	// NewLogProcessor create a log processor for the package logs
-	// 日志脱敏处理函数，调用过之后，eng只能用于log处理，因为规则会做专门的优化，不适合其他API使用
-	// 最大输入1KB, 16 items, 预计最高200QPS，超出会截断日志，CPU也会相应升高，业务需要特别关注。
-	NewLogProcessor() Processor
-
-	// Close engine object, release memory of inner object
-	// 关闭，释放内部变量
-	Close()
-
-	// GetVersion Get Dlp SDK version string
-	// 获取版本号
-	GetVersion() string
-
 	// RegisterMasker Register DIY Masker
 	// 注册自定义打码函数
 	RegisterMasker(maskName string, maskFunc func(string) (string, error)) error
-
-	// ApplyConfigDefault will use embedded local config, only used for DLP team
-	// 业务禁止使用
-	ApplyConfigDefault() error
-
-	// DisableAllRules will disable all rules, only used for benchmark baseline
-	// 业务禁止使用
-	DisableAllRules() error
-
-	// NewEmptyLogProcessor will new a log processor which will do nothing
-	// 业务禁止使用
-	NewEmptyLogProcessor() Processor
-
-	// ShowDlpConf will print config file
-	// 打印配置文件
-	ShowDlpConf() error
-	// GetDefaultConf will return default config string
-	// 返回默认的conf string
-	GetDefaultConf() string
 }
 
 // IsValue checks whether the ResultType is VALUE

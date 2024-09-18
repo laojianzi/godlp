@@ -10,7 +10,6 @@ import (
 	"unicode/utf8"
 
 	"github.com/laojianzi/godlp/conf"
-
 	"github.com/laojianzi/godlp/header"
 )
 
@@ -38,10 +37,10 @@ type API interface {
 	GetRuleName() string
 	// Mask will return masked string
 	// 返回打码后的文本
-	Mask(string) (string, error)
+	Mask(in string) (string, error)
 	// MaskResult will modify DetectResult.MaskText
 	// 修改DetectResult.MaskText
-	MaskResult(*header.DetectResult) error
+	MaskResult(res *header.DetectResult) error
 }
 
 // NewWorker create Worker based on MaskRule
@@ -130,45 +129,52 @@ func (I *Worker) maskCharImpl(in string) (string, error) {
 	if len(I.rule.Value) > 0 {
 		ch = I.rule.Value[0]
 	}
+
 	sz := len(in)
 	out := []byte(in)
-	if !I.rule.Reverse {
-		cnt := 0
-		st := 0
+	if !I.rule.Reverse { // nolint: nestif
+		cnt, st := 0, 0
 		if I.rule.Offset >= 0 {
 			st = int(I.rule.Offset)
 		}
+
 		ed := sz
 		if I.rule.Padding >= 0 {
 			ed = sz - int(I.rule.Padding)
 		}
+
 		for i := st; i < ed; i++ {
 			// if Length == 0 , do not check
 			if I.rule.Length > 0 && cnt >= int(I.rule.Length) {
 				break
 			}
+
 			if strings.IndexByte(I.rule.IgnoreCharSet, out[i]) == -1 { // ignore check
 				out[i] = ch
 			}
+
 			cnt++
 		}
 	} else {
-		cnt := 0
-		ed := sz
+		cnt, ed := 0, sz
 		if I.rule.Offset >= 0 {
 			ed = sz - 1 - int(I.rule.Offset)
 		}
+
 		st := 0
 		if I.rule.Padding >= 0 {
 			st = int(I.rule.Padding)
 		}
+
 		for i := ed; i >= st; i-- {
 			if I.rule.Length > 0 && cnt >= int(I.rule.Length) {
 				break
 			}
+
 			if strings.IndexByte(I.rule.IgnoreCharSet, out[i]) == -1 { // ignore check
 				out[i] = ch
 			}
+
 			cnt++
 		}
 	}
@@ -213,24 +219,27 @@ func (I *Worker) maskAlgoImpl(in string) (string, error) {
 	case "DEIDENTIFY":
 		return I.maskDeIdentifyImpl(in)
 	default:
-		return in, fmt.Errorf("RuleName: %s, MaskType: %s , Value:%s, %w", I.rule.RuleName, I.rule.MaskType, I.rule.Value, header.ErrMaskNotSupport)
+		return in, fmt.Errorf("RuleName: %s, MaskType: %s , Value:%s, %w",
+			I.rule.RuleName, I.rule.MaskType, I.rule.Value, header.ErrMaskNotSupport)
 	}
 }
 
 // maskAddressImpl masks Address
 func (I *Worker) maskAddressImpl(in string) (string, error) {
 	st := 0
-
 	if pos, id := I.indexSubList(in, st, enterList, true); pos != -1 { // found
 		st = pos + len(enterList[id])
 	}
+
 	out := in[:st]
 	sz := len(in)
-	for pos, id := I.indexSubList(in, st, midList, false); pos != -1 && st < sz; pos, id = I.indexSubList(in, st, midList, false) {
+	for pos, id := I.indexSubList(in, st, midList, false); pos != -1 &&
+		st < sz; pos, id = I.indexSubList(in, st, midList, false) {
 		out += strings.Repeat("*", pos-st)
 		out += midList[id]
 		st = pos + len(midList[id])
 	}
+
 	out += in[st:]
 	out, _ = I.maskNumberImpl(out)
 	if strings.Compare(in, out) == 0 { // mask Last 3 rune
@@ -240,8 +249,10 @@ func (I *Worker) maskAddressImpl(in string) (string, error) {
 			lastByteSz += width
 			out = out[0 : len(out)-width]
 		}
+
 		out += strings.Repeat("*", lastByteSz)
 	}
+
 	return out, nil
 }
 
@@ -251,23 +262,21 @@ func (I *Worker) indexSubList(in string, st int, list []string, isLast bool) (in
 	retPos := -1
 	retId := -1
 	for i, word := range list {
-		if pos := strings.Index(tmp, word); pos != -1 { // found
-			loc := st + pos
-			if retPos == -1 { // first
-				retPos = loc
-				retId = i
-				if !isLast { // not last return directly
-					return retPos, retId
-				}
-			} else {
-				if isLast {
-					if loc >= retPos {
-						retPos = loc
-						retId = i
-					}
-				}
-			}
+		pos := strings.Index(tmp, word)
+		if pos == -1 { // not found
+			continue
+		}
 
+		loc := st + pos
+		if retPos == -1 { // first
+			retPos = loc
+			retId = i
+			if !isLast { // not last return directly
+				return retPos, retId
+			}
+		} else if isLast && loc >= retPos {
+			retPos = loc
+			retId = i
 		}
 	}
 	return retPos, retId

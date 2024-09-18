@@ -12,15 +12,16 @@ import (
 )
 
 type MaskRuleItem struct {
-	RuleName      string   `yaml:"RuleName"`
-	MaskType      string   `yaml:"MaskType"` // one of [CHAR, TAG, REPLACE, EMPTY, ALGO ]
-	Value         string   `yaml:"Value"`
-	Offset        int32    `yaml:"Offset"`
-	Padding       int32    `yaml:"Padding"`
-	Length        int32    `yaml:"Length"`
-	Reverse       bool     `yaml:"Reverse"`
-	IgnoreCharSet string   `yaml:"IgnoreCharSet"`
-	IgnoreKind    []string `yaml:"IgnoreKind"` // one of [NUMERIC, ALPHA_UPPER_CASE, ALPHA_LOWER_CASE, WHITESPACE, PUNCTUATION]
+	RuleName      string `yaml:"RuleName"`
+	MaskType      string `yaml:"MaskType"` // one of [CHAR, TAG, REPLACE, EMPTY, ALGO ]
+	Value         string `yaml:"Value"`
+	Offset        int32  `yaml:"Offset"`
+	Padding       int32  `yaml:"Padding"`
+	Length        int32  `yaml:"Length"`
+	Reverse       bool   `yaml:"Reverse"`
+	IgnoreCharSet string `yaml:"IgnoreCharSet"`
+	// one of [NUMERIC, ALPHA_UPPER_CASE, ALPHA_LOWER_CASE, WHITESPACE, PUNCTUATION]
+	IgnoreKind []string `yaml:"IgnoreKind"`
 }
 
 type RuleItem struct {
@@ -112,22 +113,27 @@ func (I *DlpConf) Verify() error {
 	for _, rule := range I.MaskRules {
 		// MaskType
 		if inList(rule.MaskType, defMaskTypeSet) == -1 {
-			return fmt.Errorf("%w, Mask RuleName:%s, MaskType:%s is not suppored", header.ErrConfVerifyFailed, rule.RuleName, rule.MaskType)
+			return fmt.Errorf("%w, Mask RuleName:%s, MaskType:%s is not suppored",
+				header.ErrConfVerifyFailed, rule.RuleName, rule.MaskType)
 		}
 		if strings.Compare(rule.MaskType, "ALGO") == 0 {
 			if inList(rule.Value, defMaskAlgo) == -1 {
-				return fmt.Errorf("%w, Mask RuleName:%s, ALGO Value: %s is not supported", header.ErrConfVerifyFailed, rule.RuleName, rule.Value)
+				return fmt.Errorf("%w, Mask RuleName:%s, ALGO Value: %s is not supported",
+					header.ErrConfVerifyFailed, rule.RuleName, rule.Value)
 			}
 		}
 		if !(rule.Offset >= 0) {
-			return fmt.Errorf("%w, Mask RuleName:%s, Offset: %d need >=0", header.ErrConfVerifyFailed, rule.RuleName, rule.Offset)
+			return fmt.Errorf("%w, Mask RuleName:%s, Offset: %d need >=0",
+				header.ErrConfVerifyFailed, rule.RuleName, rule.Offset)
 		}
 		if !(rule.Length >= 0) {
-			return fmt.Errorf("%w, Mask RuleName:%s, Length: %d need >=0", header.ErrConfVerifyFailed, rule.RuleName, rule.Length)
+			return fmt.Errorf("%w, Mask RuleName:%s, Length: %d need >=0",
+				header.ErrConfVerifyFailed, rule.RuleName, rule.Length)
 		}
 		for _, kind := range rule.IgnoreKind {
 			if inList(kind, defIgnoreKind) == -1 {
-				return fmt.Errorf("%w, Mask RuleName:%s, IgnoreKind: %s is not supported", header.ErrConfVerifyFailed, rule.RuleName, kind)
+				return fmt.Errorf("%w, Mask RuleName:%s, IgnoreKind: %s is not supported",
+					header.ErrConfVerifyFailed, rule.RuleName, kind)
 			}
 		}
 	}

@@ -80,6 +80,7 @@ func (I *Engine) detectImpl(inputText string) ([]*header.DetectResult, error) {
 	rd := bufio.NewReaderSize(strings.NewReader(inputText), DefLineBlockSize)
 	currPos := 0
 	results := make([]*header.DetectResult, 0, DefResultSize)
+
 	for {
 		line, err := rd.ReadBytes('\n')
 		if len(line) > 0 {
@@ -90,10 +91,11 @@ func (I *Engine) detectImpl(inputText string) ([]*header.DetectResult, error) {
 			currPos += len(newLine)
 		}
 		if err != nil {
-			if err != io.EOF {
-				// show err
+			if err == io.EOF {
+				break
 			}
-			break
+
+			// show err
 		}
 	}
 	return results, nil
@@ -134,6 +136,7 @@ func (I *Engine) detectBytes(line []byte) ([]*header.DetectResult, error) {
 			if err != nil {
 				retErr = err
 			}
+
 			results = append(results, res...)
 		}
 	}
@@ -154,11 +157,10 @@ func (I *Engine) extractKVList(line []byte) []*detector.KVItem {
 		if width == 0 { // error
 			break
 		}
-		if i+1 < sz && isEqualChar(ch) {
-			left := ""
-			right := ""
-			vPos := []int{-1, -1}
-			kPos := []int{-1, -1}
+
+		if i+1 < sz && isEqualChar(ch) { // nolint: nestif
+			left, right := "", ""
+			vPos, kPos := []int{-1, -1}, []int{-1, -1}
 			isFound := false
 			if i+2 < sz {
 				nx, nxWidth := utf8.DecodeRune(line[i+width:])
@@ -168,13 +170,16 @@ func (I *Engine) extractKVList(line []byte) []*detector.KVItem {
 					isFound = true
 				}
 			}
+
 			if !isFound {
 				left, kPos = lastToken(line, i)
 				right, vPos = firstToken(line, i+width)
 				isFound = true
 			}
+
 			// logger.Debugf("%s [%d,%d) = %s [%d,%d)", left, kPos[0], kPos[1], right, vPos[0], vPos[1])
 			_ = kPos
+
 			if len(left) != 0 && len(right) != 0 {
 				loLeft := strings.ToLower(left)
 				kvList = append(kvList, &detector.KVItem{
@@ -185,6 +190,7 @@ func (I *Engine) extractKVList(line []byte) []*detector.KVItem {
 				})
 			}
 		}
+
 		i += width
 	}
 	return kvList
@@ -264,6 +270,7 @@ func (I *Engine) detectKVList(kvList []*detector.KVItem) ([]*header.DetectResult
 				// detectKVList is called from detect(), so result type will be VALUE
 				mapResults[i].ResultType = detector.ResultTypeValue
 			}
+
 			results = append(results, mapResults...)
 		}
 	}
@@ -294,17 +301,19 @@ func (a ResultList) Swap(i, j int) {
 func (a ResultList) Less(i, j int) bool {
 	if a[i].ByteStart < a[j].ByteStart {
 		return true
-	} else if a[i].ByteStart == a[j].ByteStart {
+	}
+
+	if a[i].ByteStart == a[j].ByteStart {
 		if a[i].ByteEnd < a[j].ByteEnd {
 			return true
-		} else if a[i].ByteEnd == a[j].ByteEnd { // same
-			return a[i].RuleID < a[j].RuleID
-		} else {
-			return false
 		}
-	} else {
-		return false
+
+		if a[i].ByteEnd == a[j].ByteEnd { // same
+			return a[i].RuleID < a[j].RuleID
+		}
 	}
+
+	return false
 }
 
 // Contain checks whether a[i] contains a[j]
@@ -342,23 +351,29 @@ func (I *Engine) mergeResults(a []*header.DetectResult, b []*header.DetectResult
 	for i := 0; i < sz; i++ {
 		mark[i] = true
 	}
+
 	for i := 0; i < sz; i++ {
-		if mark[i] {
-			for j := i + 1; j < sz; j++ {
-				if mark[j] {
-					// inner element will be ignored
-					if ResultList(total).Equal(i, j) {
-						mark[i] = false
-						break
-					} else {
-						if ResultList(total).Contain(i, j) {
-							mark[j] = false
-						}
-						if ResultList(total).Contain(j, i) {
-							mark[i] = false
-						}
-					}
-				}
+		if !mark[i] {
+			continue
+		}
+
+		for j := i + 1; j < sz; j++ {
+			if !mark[j] {
+				continue
+			}
+
+			// inner element will be ignored
+			if ResultList(total).Equal(i, j) {
+				mark[i] = false
+				break
+			}
+
+			if ResultList(total).Contain(i, j) {
+				mark[j] = false
+			}
+
+			if ResultList(total).Contain(j, i) {
+				mark[i] = false
 			}
 		}
 	}
@@ -404,10 +419,11 @@ func (I *Engine) detectMapImpl(inputMap map[string]string) ([]*header.DetectResu
 	for _, obj := range I.detectorMap {
 		if obj != nil {
 			res, err := obj.DetectMap(inputMap)
-			if err != nil {
-				// logger.Errorf(err.Error())
+			if err == nil {
+				results = append(results, res...)
 			}
-			results = append(results, res...)
+
+			// logger.Errorf(err.Error())
 		}
 	}
 	// merge result to reduce combined item
@@ -432,22 +448,10 @@ func getMax(x, y int) int {
 }
 
 // detectJSONImpl implements detectJSON
-func (I *Engine) detectJSONImpl(jsonText string) (retResults []*header.DetectResult, kvMap map[string]string, retErr error) {
+func (I *Engine) detectJSONImpl(jsonText string) (results []*header.DetectResult, kvMap map[string]string, err error) {
 	var jsonObj interface{}
-	if err := json.Unmarshal([]byte(jsonText), &jsonObj); err == nil {
-		// logger.Debugf("%+v\n", jsonObj)
-		kvMap = make(map[string]string)
-		I.dfsJSON("", &jsonObj, kvMap, false)
-		retResults, retErr = I.detectMapImpl(kvMap)
-		for _, item := range retResults {
-			if orig, ok := kvMap[item.Key]; ok {
-				if out, err := I.deIdentifyByResult(orig, []*header.DetectResult{item}); err == nil {
-					kvMap[item.Key] = out
-				}
-			}
-		}
-		return
-	} else {
+	err = json.Unmarshal([]byte(jsonText), &jsonObj)
+	if err != nil {
 		var e *json.SyntaxError
 		if errors.As(err, &e) {
 			return nil, nil, fmt.Errorf("%s: offset[%d], str[%s]", err.Error(), e.Offset,
@@ -455,6 +459,37 @@ func (I *Engine) detectJSONImpl(jsonText string) (retResults []*header.DetectRes
 		}
 		return nil, nil, err
 	}
+
+	// logger.Debugf("%+v\n", jsonObj)
+	kvMap = make(map[string]string)
+	I.dfsJSON("", &jsonObj, kvMap, false)
+	results, err = I.detectMapImpl(kvMap)
+	for _, item := range results {
+		if orig, ok := kvMap[item.Key]; ok {
+			if out, err := I.deIdentifyByResult(orig, []*header.DetectResult{item}); err == nil {
+				kvMap[item.Key] = out
+			}
+		}
+	}
+	return
+}
+
+var wideCharMap = map[rune]string{
+	'【': "  [",
+	'】': "]  ",
+	'：': "  :", // must use [space,space,:], for :=
+	'「': "  {",
+	'」': "}  ",
+	'（': "  (",
+	'）': ")  ",
+	'《': "  <",
+	'》': ">  ",
+	'。': ".  ",
+	'？': "?  ",
+	'！': "!  ",
+	'，': ",  ",
+	'、': ",  ",
+	'；': ";  ",
 }
 
 // replaceWideChar replace wide char with one byte char
@@ -465,45 +500,19 @@ func (I *Engine) replaceWideChar(lineArray []byte) []byte {
 			i++
 			continue
 		}
+
 		r, width := utf8.DecodeRune(lineArray[i:])
 		if width == 0 { // error
 			break
 		}
-		switch r {
-		case '【':
-			copy(lineArray[i:i+width], "  [")
-		case '】':
-			copy(lineArray[i:i+width], "]  ")
-		case '：':
-			copy(lineArray[i:i+width], "  :") // must use [space,space,:], for :=
-		case '「':
-			copy(lineArray[i:i+width], "  {")
-		case '」':
-			copy(lineArray[i:i+width], "}  ")
-		case '（':
-			copy(lineArray[i:i+width], "  (")
-		case '）':
-			copy(lineArray[i:i+width], ")  ")
-		case '《':
-			copy(lineArray[i:i+width], "  <")
-		case '》':
-			copy(lineArray[i:i+width], ">  ")
-		case '。':
-			copy(lineArray[i:i+width], ".  ")
-		case '？':
-			copy(lineArray[i:i+width], "?  ")
-		case '！':
-			copy(lineArray[i:i+width], "!  ")
-		case '，':
-			copy(lineArray[i:i+width], ",  ")
-		case '、':
-			copy(lineArray[i:i+width], ",  ")
-		case '；':
-			copy(lineArray[i:i+width], ";  ")
 
+		if s, ok := wideCharMap[r]; ok {
+			copy(lineArray[i:i+width], s)
 		}
+
 		i += width
 	}
+
 	return lineArray
 }
 
@@ -515,8 +524,9 @@ func (I *Engine) unquoteEscapeChar(lineArray []byte) []byte {
 		if r == '\\' {
 			// last 2 char
 			if i+1 < sz {
-				c := lineArray[i+1]
 				value := byte(' ')
+
+				c := lineArray[i+1]
 				switch c {
 				case 'a':
 					value = '\a'

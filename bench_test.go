@@ -1,4 +1,4 @@
-package dlp
+package dlp_test
 
 import (
 	"bytes"
@@ -7,15 +7,14 @@ import (
 	"strconv"
 	"testing"
 
+	dlp "github.com/laojianzi/godlp"
 	"github.com/laojianzi/godlp/internal/json"
 )
 
-var (
-	CallerSys = "caller.sys"
-)
+var CallerSys = "caller.sys"
 
 func BenchmarkEngine_NewAndClose(b *testing.B) {
-	if eng, err := NewEngine(CallerSys); err == nil {
+	if eng, err := dlp.NewEngine(CallerSys); err == nil {
 		for i := 0; i < b.N; i++ {
 			eng.Close()
 		}
@@ -27,7 +26,7 @@ func BenchmarkEngine_NewAndClose(b *testing.B) {
 // public func
 func BenchmarkEngine_ApplyConfigDefault(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		if eng, err := NewEngine(CallerSys); err == nil {
+		if eng, err := dlp.NewEngine(CallerSys); err == nil {
 			if err = eng.ApplyConfigDefault(); err != nil {
 				b.Fatal(err)
 			}
@@ -43,7 +42,7 @@ func BenchmarkEngine_DeIdentify1k(b *testing.B) {
 		b.Fatal(err)
 	}
 
-	eng, err := NewEngine(CallerSys)
+	eng, err := dlp.NewEngine(CallerSys)
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -72,7 +71,7 @@ func BenchmarkEngine_DeIdentify10k(b *testing.B) {
 	}
 
 	text := dupString(src, 10)
-	eng, err := NewEngine(CallerSys)
+	eng, err := dlp.NewEngine(CallerSys)
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -101,7 +100,7 @@ func BenchmarkEngine_DeIdentify100k(b *testing.B) {
 	}
 
 	text := dupString(src, 100)
-	eng, err := NewEngine(CallerSys)
+	eng, err := dlp.NewEngine(CallerSys)
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -130,7 +129,7 @@ func BenchmarkEngine_DeIdentify1m(b *testing.B) {
 	}
 
 	text := dupString(src, 1000)
-	eng, err := NewEngine(CallerSys)
+	eng, err := dlp.NewEngine(CallerSys)
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -158,7 +157,7 @@ func BenchmarkEngine_DeIdentifyJSON1k(b *testing.B) {
 		b.Fatal(err)
 	}
 
-	eng, err := NewEngine(CallerSys)
+	eng, err := dlp.NewEngine(CallerSys)
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -187,7 +186,7 @@ func BenchmarkEngine_DeIdentifyJSON10k(b *testing.B) {
 		b.Fatal(err)
 	}
 
-	eng, err := NewEngine(CallerSys)
+	eng, err := dlp.NewEngine(CallerSys)
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -203,6 +202,7 @@ func BenchmarkEngine_DeIdentifyJSON10k(b *testing.B) {
 		}
 	}
 }
+
 func BenchmarkEngine_DeIdentifyJSON100k(b *testing.B) {
 	src, err := Read("./testdata/test_json_1k.txt")
 	if err != nil {
@@ -210,7 +210,11 @@ func BenchmarkEngine_DeIdentifyJSON100k(b *testing.B) {
 	}
 
 	text, err := dupJson(src, 100)
-	eng, err := NewEngine(CallerSys)
+	if err != nil {
+		b.Fatal(err)
+	}
+
+	eng, err := dlp.NewEngine(CallerSys)
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -227,6 +231,7 @@ func BenchmarkEngine_DeIdentifyJSON100k(b *testing.B) {
 		}
 	}
 }
+
 func BenchmarkEngine_DeIdentifyJSON1m(b *testing.B) {
 	src, err := Read("./testdata/test_json_1k.txt")
 	if err != nil {
@@ -238,7 +243,7 @@ func BenchmarkEngine_DeIdentifyJSON1m(b *testing.B) {
 		b.Fatal(err)
 	}
 
-	eng, err := NewEngine(CallerSys)
+	eng, err := dlp.NewEngine(CallerSys)
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -255,18 +260,15 @@ func BenchmarkEngine_DeIdentifyJSON1m(b *testing.B) {
 	}
 }
 
-/**
- * 判断文件是否存在  存在返回 true 不存在返回false
- */
+// 判断文件是否存在  存在返回 true 不存在返回false
+//
+// nolint: unused
 func checkFileIsExist(filename string) bool {
-	var exist = true
-	if _, err := os.Stat(filename); os.IsNotExist(err) {
-		exist = false
-	}
-	return exist
+	_, err := os.Stat(filename)
+	return !os.IsNotExist(err)
 }
 
-// 读取到file中，再利用ioutil将file直接读取到[]byte中, 这是最优
+// 读取到file中，再利用io将file直接读取到[]byte中, 这是最优
 func Read(filepath string) (string, error) {
 	f, err := os.Open(filepath)
 	if err != nil {

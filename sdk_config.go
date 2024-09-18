@@ -22,6 +22,7 @@ func (I *Engine) ApplyConfig(confString string) error {
 // 传入filePath 进行配置
 func (I *Engine) ApplyConfigFile(filePath string) error {
 	defer I.recoveryImpl()
+
 	var retErr error
 	if confObj, err := conf.NewDlpConfByPath(filePath); err == nil {
 		retErr = I.applyConfigImpl(confObj)

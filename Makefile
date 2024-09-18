@@ -10,7 +10,7 @@ dep:
 	@go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
 
 lint:
-	@golangci-lint ./...
+	@golangci-lint run ./...
 
 test: 
 	@go test ./... -v -race -failfast  -count=1 -timeout 10s

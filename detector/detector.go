@@ -12,11 +12,11 @@ import (
 	"unicode/utf8"
 
 	"github.com/laojianzi/godlp/conf"
-
 	"github.com/laojianzi/godlp/header"
 )
 
-// RuleType is different with ResultType, because for input string contains KV object, KV rule will generate Value Detect Type
+// RuleType is different with ResultType, because for input string contains KV object,
+// KV rule will generate Value Detect Type
 const (
 	RuleTypeValue        = 0
 	RuleTypeKv           = 1
@@ -95,59 +95,61 @@ func NewDetector(ruleItem conf.RuleItem) (API, error) {
 
 // GetRuleInfo returns rule as string
 // public func
-func (I *Detector) GetRuleInfo() string {
-	return fmt.Sprintf("%+v", I.rule)
+func (d *Detector) GetRuleInfo() string {
+	return fmt.Sprintf("%+v", d.rule)
 }
 
 // GetRuleID returns RuleID
-func (I *Detector) GetRuleID() int32 {
-	return I.rule.RuleID
+func (d *Detector) GetRuleID() int32 {
+	return d.rule.RuleID
 }
 
 // GetMaskRuleName returns MaskRuleName used in Detect Rule
-func (I *Detector) GetMaskRuleName() string {
-	return I.rule.Mask
+func (d *Detector) GetMaskRuleName() string {
+	return d.rule.Mask
 }
 
 // IsValue checks whether Detect RuleType is VALUE
-func (I *Detector) IsValue() bool {
-	return I.RuleType == RuleTypeValue
+func (d *Detector) IsValue() bool {
+	return d.RuleType == RuleTypeValue
 }
 
 // IsKV checks whether Detect RuleType is KV
-func (I *Detector) IsKV() bool {
-	return I.RuleType == RuleTypeKv
+func (d *Detector) IsKV() bool {
+	return d.RuleType == RuleTypeKv
 }
 
 // UseRegex checks whether Rule use Regex
-func (I *Detector) UseRegex() bool {
-	return len(I.KReg) > 0 || len(I.VReg) > 0
+func (d *Detector) UseRegex() bool {
+	return len(d.KReg) > 0 || len(d.VReg) > 0
 }
 
 // DetectBytes detects sensitive info for bytes, is called from Detect()
-func (I *Detector) DetectBytes(inputBytes []byte) ([]*header.DetectResult, error) {
+func (d *Detector) DetectBytes(inputBytes []byte) ([]*header.DetectResult, error) {
 	results := make([]*header.DetectResult, 0, DefResultSize)
-	for _, reObj := range I.VReg {
-		if ret, err := I.regexDetectBytes(reObj, inputBytes); err == nil {
+	for _, reObj := range d.VReg {
+		if ret, err := d.regexDetectBytes(reObj, inputBytes); err == nil {
 			results = append(results, ret...)
-		} else {
-			// logger.Errorf(err.Error())
+			continue
 		}
+
+		// logger.Errorf(err.Error())
 	}
-	for _, item := range I.VDict {
-		if ret, err := I.dictDetectBytes([]byte(item), inputBytes); err == nil {
+	for _, item := range d.VDict {
+		if ret, err := d.dictDetectBytes([]byte(item), inputBytes); err == nil {
 			results = append(results, ret...)
-		} else {
-			// logger.Errorf(err.Error())
+			continue
 		}
+
+		// logger.Errorf(err.Error())
 	}
-	results = I.filter(results)
-	results = I.verify(inputBytes, results)
+	results = d.filter(results)
+	results = d.verify(inputBytes, results)
 	return results, nil
 }
 
 // DetectMap detects for Map, is called from DetectMap() and DetectJSON()
-func (I *Detector) DetectMap(inputMap map[string]string) ([]*header.DetectResult, error) {
+func (d *Detector) DetectMap(inputMap map[string]string) ([]*header.DetectResult, error) {
 	results := make([]*header.DetectResult, 0)
 
 	// (KReg || KDict) && (VReg || VDict)
@@ -158,153 +160,169 @@ func (I *Detector) DetectMap(inputMap map[string]string) ([]*header.DetectResult
 	for inK, inV := range inputMap {
 		item.Key = inK
 		item.Value = inV
-		I.doDetectKV(item, &results)
+		d.doDetectKV(item, &results)
 	}
 	return results, nil
 }
 
 // DetectList detects for List
-func (I *Detector) DetectList(kvList []*KVItem) ([]*header.DetectResult, error) {
+func (d *Detector) DetectList(kvList []*KVItem) ([]*header.DetectResult, error) {
 	results := make([]*header.DetectResult, 0)
 
 	length := len(kvList)
 	for i := 0; i < length; i++ {
-		I.doDetectKV(kvList[i], &results)
+		d.doDetectKV(kvList[i], &results)
 	}
 	return results, nil
 }
 
-func (I *Detector) doDetectKV(kvItem *KVItem, results *[]*header.DetectResult) {
+func (d *Detector) doDetectKV(kvItem *KVItem, results *[]*header.DetectResult) {
 	// inK may be a path of json object
-	lastKey, ifExtracted := I.getLastKey(kvItem.Key)
-	if I.IsKV() {
+	lastKey, ifExtracted := d.getLastKey(kvItem.Key)
+	if d.IsKV() { // nolint: nestif
 		// key rules check
 		// Dict rules first, then regex rule
-		_, hit := I.KDict[lastKey]
+		_, hit := d.KDict[lastKey]
 		if (!hit) && ifExtracted {
-			_, hit = I.KDict[kvItem.Key]
+			_, hit = d.KDict[kvItem.Key]
 		}
 
 		if !hit {
-			for _, re := range I.KReg {
+			for _, re := range d.KReg {
 				if re.Match([]byte(lastKey)) {
 					hit = true
 					break
 				}
 			}
 		}
-		if hit { // key rule is hit
-			if len(I.VDict) == 0 && len(I.VReg) == 0 { // no value rule
-				if res, err := I.createKVResult(kvItem.Key, kvItem.Value); err == nil {
-					res.ByteStart += kvItem.Start
-					res.ByteEnd += kvItem.Start
-					*results = append(*results, res)
-				}
-			} else { // check value rule
-				if vResults, err := I.DetectBytes([]byte(kvItem.Value)); err == nil {
-					for _, res := range vResults {
-						// convert VALUE result into KV result
-						res.ResultType = ResultTypeKv
-						res.Key = kvItem.Key
-						res.ByteStart += kvItem.Start
-						res.ByteEnd += kvItem.Start
-						*results = append(*results, res)
-					}
-				}
-			}
+
+		if !hit {
+			return
 		}
-	} else { // only value rule
-		if vResults, err := I.DetectBytes([]byte(kvItem.Value)); err == nil {
+
+		// key rule is hit
+		if len(d.VDict) == 0 && len(d.VReg) == 0 { // no value rule
+			if res, err := d.createKVResult(kvItem.Key, kvItem.Value); err == nil {
+				res.ByteStart += kvItem.Start
+				res.ByteEnd += kvItem.Start
+				*results = append(*results, res)
+			}
+
+			return
+		}
+
+		// check value rule
+		if vResults, err := d.DetectBytes([]byte(kvItem.Value)); err == nil {
 			for _, res := range vResults {
-				// use VALUE because value rule
-				res.ResultType = ResultTypeValue
+				// convert VALUE result into KV result
+				res.ResultType = ResultTypeKv
 				res.Key = kvItem.Key
 				res.ByteStart += kvItem.Start
 				res.ByteEnd += kvItem.Start
 				*results = append(*results, res)
 			}
 		}
+
+		return
+	}
+
+	// only value rule
+	vResults, err := d.DetectBytes([]byte(kvItem.Value))
+	if err != nil {
+		return
+	}
+
+	for _, res := range vResults {
+		// use VALUE because value rule
+		res.ResultType = ResultTypeValue
+		res.Key = kvItem.Key
+		res.ByteStart += kvItem.Start
+		res.ByteEnd += kvItem.Start
+		*results = append(*results, res)
 	}
 }
 
 // Close release detector object
-func (I *Detector) Close() {
-	for i := range I.VReg {
-		I.VReg[i] = nil
+func (d *Detector) Close() {
+	for i := range d.VReg {
+		d.VReg[i] = nil
 	}
 	// Detect section
-	I.KDict = nil
-	I.releaseReg(I.KReg)
-	I.KReg = nil
-	I.VDict = nil
-	I.releaseReg(I.VReg)
-	I.VReg = nil
+	d.KDict = nil
+	d.releaseReg(d.KReg)
+	d.KReg = nil
+	d.VDict = nil
+	d.releaseReg(d.VReg)
+	d.VReg = nil
 
 	// Filter section
-	I.BAlgo = nil
-	I.BDict = nil
-	I.releaseReg(I.BReg)
-	I.BReg = nil
+	d.BAlgo = nil
+	d.BDict = nil
+	d.releaseReg(d.BReg)
+	d.BReg = nil
 
 	// Verify section
-	I.CDict = nil
-	I.releaseReg(I.CReg)
-	I.CReg = nil
-	I.VAlgo = nil
+	d.CDict = nil
+	d.releaseReg(d.CReg)
+	d.CReg = nil
+	d.VAlgo = nil
 }
 
 // private func
 
 // prepare will prepare detector object from rule
-func (I *Detector) prepare() {
+func (d *Detector) prepare() {
 	// Detect
-	I.KReg = I.preCompile(I.rule.Detect.KReg)
-	I.KDict = lowerStringList2Map(I.rule.Detect.KDict)
-	I.VReg = I.preCompile(I.rule.Detect.VReg)
-	I.VDict = I.rule.Detect.VDict
+	d.KReg = d.preCompile(d.rule.Detect.KReg)
+	d.KDict = lowerStringList2Map(d.rule.Detect.KDict)
+	d.VReg = d.preCompile(d.rule.Detect.VReg)
+	d.VDict = d.rule.Detect.VDict
 
 	// Filter
-	I.BReg = I.preCompile(I.rule.Filter.BReg)
-	I.BAlgo = I.rule.Filter.BAlgo
-	I.BDict = I.rule.Filter.BDict
+	d.BReg = d.preCompile(d.rule.Filter.BReg)
+	d.BAlgo = d.rule.Filter.BAlgo
+	d.BDict = d.rule.Filter.BDict
 	// Verify
-	I.CReg = I.preCompile(I.rule.Verify.CReg)
-	I.CDict = I.rule.Verify.CDict
-	I.VAlgo = I.rule.Verify.VAlgo
-	I.setRuleType()
+	d.CReg = d.preCompile(d.rule.Verify.CReg)
+	d.CDict = d.rule.Verify.CDict
+	d.VAlgo = d.rule.Verify.VAlgo
+	d.setRuleType()
 }
 
 // setRuleType set RuleType based on K V in detect section of config
-func (I *Detector) setRuleType() {
-	if len(I.KDict) == 0 && len(I.KReg) == 0 { // no key rules means RuleType is VALUE
-		I.RuleType = RuleTypeValue
+func (d *Detector) setRuleType() {
+	if len(d.KDict) == 0 && len(d.KReg) == 0 { // no key rules means RuleType is VALUE
+		d.RuleType = RuleTypeValue
 	} else { // RuleType is KV
-		I.RuleType = RuleTypeKv
+		d.RuleType = RuleTypeKv
 	}
 }
 
 // releaseReg will set item of list as nil
-func (I *Detector) releaseReg(list []*regexp.Regexp) {
+func (d *Detector) releaseReg(list []*regexp.Regexp) {
 	for i := range list {
 		list[i] = nil
 	}
 }
 
 // preCompile compiles regex string list then return regex list
-func (I *Detector) preCompile(reList []string) []*regexp.Regexp {
+func (d *Detector) preCompile(reList []string) []*regexp.Regexp {
 	list := make([]*regexp.Regexp, 0, DefResultSize)
 	for _, reStr := range reList {
 		if re, err := regexp.Compile(reStr); err == nil {
 			list = append(list, re)
-		} else {
-			// logger.Errorf("Regex %s ,error: %w", reStr, err)
+			continue
 		}
+
+		// logger.Errorf("Regex %s ,error: %w", reStr, err)
 	}
 	return list
 }
 
 // preToLower modify dictList to lower case
-func (I *Detector) preToLower(dictList []string) []string {
+//
+// //nolint: unused
+func (d *Detector) preToLower(dictList []string) []string {
 	for i, item := range dictList {
 		dictList[i] = strings.ToLower(item)
 	}
@@ -324,7 +342,7 @@ func lowerStringList2Map(dictList []string) map[string]struct{} {
 }
 
 // regexDetectBytes use regex to detect input bytes
-func (I *Detector) regexDetectBytes(re *regexp.Regexp, inputBytes []byte) ([]*header.DetectResult, error) {
+func (d *Detector) regexDetectBytes(re *regexp.Regexp, inputBytes []byte) ([]*header.DetectResult, error) {
 	if re == nil {
 		return nil, header.ErrReEmpty
 	}
@@ -332,7 +350,7 @@ func (I *Detector) regexDetectBytes(re *regexp.Regexp, inputBytes []byte) ([]*he
 	if ret := re.FindAllIndex(inputBytes, -1); ret != nil {
 		for i := range ret {
 			pos := ret[i]
-			if res, err := I.createValueResult(inputBytes, pos); err == nil {
+			if res, err := d.createValueResult(inputBytes, pos); err == nil {
 				results = append(results, res)
 			}
 		}
@@ -341,7 +359,7 @@ func (I *Detector) regexDetectBytes(re *regexp.Regexp, inputBytes []byte) ([]*he
 }
 
 // dictDetectBytes finds whether word in input bytes
-func (I *Detector) dictDetectBytes(word []byte, inputBytes []byte) ([]*header.DetectResult, error) {
+func (d *Detector) dictDetectBytes(word []byte, inputBytes []byte) ([]*header.DetectResult, error) {
 	results := make([]*header.DetectResult, 0, DefResultSize)
 	current := inputBytes
 	currStart := 0
@@ -353,7 +371,7 @@ func (I *Detector) dictDetectBytes(word []byte, inputBytes []byte) ([]*header.De
 			currStart += start
 			end := currStart + len(word)
 			pos := []int{currStart, end}
-			if res, err := I.createValueResult(inputBytes, pos); err == nil {
+			if res, err := d.createValueResult(inputBytes, pos); err == nil {
 				results = append(results, res)
 			}
 			current = inputBytes[end:]
@@ -364,11 +382,11 @@ func (I *Detector) dictDetectBytes(word []byte, inputBytes []byte) ([]*header.De
 }
 
 // createValueResult creates value result item
-func (I *Detector) createValueResult(inputBytes []byte, pos []int) (ret *header.DetectResult, err error) {
+func (d *Detector) createValueResult(inputBytes []byte, pos []int) (ret *header.DetectResult, err error) {
 	if len(pos) != 2 {
 		return nil, header.ErrPositionError
 	}
-	ret = I.newResult()
+	ret = d.newResult()
 	ret.Text = string(inputBytes[pos[0]:pos[1]])
 	ret.ResultType = ResultTypeValue
 	ret.ByteStart = pos[0]
@@ -377,8 +395,8 @@ func (I *Detector) createValueResult(inputBytes []byte, pos []int) (ret *header.
 }
 
 // createKVResult creates kv result
-func (I *Detector) createKVResult(inK string, inV string) (*header.DetectResult, error) {
-	ret := I.newResult()
+func (d *Detector) createKVResult(inK string, inV string) (*header.DetectResult, error) {
+	ret := d.newResult()
 	ret.Text = inV
 	ret.ResultType = ResultTypeKv
 	ret.ByteStart = 0
@@ -388,118 +406,153 @@ func (I *Detector) createKVResult(inK string, inV string) (*header.DetectResult,
 }
 
 // newResult new result
-func (I *Detector) newResult() *header.DetectResult {
+func (d *Detector) newResult() *header.DetectResult {
 	ret := new(header.DetectResult)
-	ret.RuleID = I.rule.RuleID
-	ret.InfoType = I.rule.InfoType
-	ret.EnName = I.rule.EnName
-	ret.CnName = I.rule.CnName
-	ret.ExtInfo = I.rule.ExtInfo
-	ret.Level = I.rule.Level
+	ret.RuleID = d.rule.RuleID
+	ret.InfoType = d.rule.InfoType
+	ret.EnName = d.rule.EnName
+	ret.CnName = d.rule.CnName
+	ret.ExtInfo = d.rule.ExtInfo
+	ret.Level = d.rule.Level
 	return ret
 }
 
 // filter will process filter condition
-func (I *Detector) filter(in []*header.DetectResult) []*header.DetectResult {
+func (d *Detector) filter(in []*header.DetectResult) []*header.DetectResult {
 	out := make([]*header.DetectResult, 0, DefResultSize)
 	for i := range in {
 		res := in[i]
-		found := false
-		for _, word := range I.BDict {
-			// Found in BlackList BDict
-			if strings.Compare(res.Text, word) == 0 {
-				found = true
+		var found bool
+		for _, filterFn := range []func(string) bool{
+			d.filterBDict,
+			d.filterBReg,
+			d.filterBAlgo,
+		} {
+			found = filterFn(res.Text)
+			if found {
 				break
 			}
 		}
-		if found == false {
-			for _, re := range I.BReg {
-				// Found in BlackList BReg
-				if re.Match([]byte(res.Text)) {
-					found = true
-					break
-				}
-			}
+
+		if found {
+			break
 		}
-		if found == false {
-			for _, algo := range I.BAlgo {
-				switch algo {
-				case BlacklistAlgoMasked:
-					if I.isMasked(res.Text) {
-						found = true
-						break
-					}
-				}
-			}
-		}
-		if found == false {
-			out = append(out, res)
-		}
+
+		out = append(out, res)
 	}
+
 	return out
 }
 
+func (d *Detector) filterBDict(text string) bool {
+	for _, word := range d.BDict {
+		// Found in BlackList BDict
+		if strings.Compare(text, word) == 0 {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (d *Detector) filterBReg(text string) bool {
+	for _, re := range d.BReg {
+		// Found in BlackList BReg
+		if re.Match([]byte(text)) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (d *Detector) filterBAlgo(text string) bool {
+	for _, algo := range d.BAlgo {
+		switch algo {
+		case BlacklistAlgoMasked:
+			if d.isMasked(text) {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
 // isMasked checks input whether contain * or #
-func (I *Detector) isMasked(in string) bool {
+func (d *Detector) isMasked(in string) bool {
 	pos := strings.IndexAny(in, MaskedCharList)
 	return pos != -1 // found mask char
 }
 
 // verify use verify config to check results
-func (I *Detector) verify(inputBytes []byte, in []*header.DetectResult) []*header.DetectResult {
+func (d *Detector) verify(inputBytes []byte, in []*header.DetectResult) []*header.DetectResult {
 	out := make([]*header.DetectResult, 0, DefResultSize)
 	markList := make([]bool, len(in))
 	for i := range markList {
 		markList[i] = true
 	}
-	if len(I.CDict) != 0 || len(I.CReg) != 0 { // need context check
+
+	if len(d.CDict) != 0 || len(d.CReg) != 0 { // need context check
 		for i, res := range in {
-			if !I.verifyByContext(inputBytes, res) { // check failed
+			if !d.verifyByContext(inputBytes, res) { // check failed
 				markList[i] = false
 			}
 		}
 	}
-	if len(I.VAlgo) != 0 { // need verify algorithm check
-		for i, res := range in {
-			if markList[i] == true {
-				for _, algo := range I.VAlgo {
-					switch algo {
-					case VerifyAlgoIDCard:
-						if !I.verifyByIDCard(res) { // check failed
-							markList[i] = false
-						}
-					case VerifyAlgoAbaRouting:
-						if !I.verifyByABARouting(res) {
-							markList[i] = false
-						}
-					case VerifyAlgoCreditCard:
-						if !I.verifyByCreditCard(res) {
-							markList[i] = false
-						}
-					case VerifyAlgoBitcoin:
-						if !I.verifyByBitCoin(res) {
-							markList[i] = false
-						}
-					case VerifyAlgoDomain:
-						if !I.verifyByDomain(res) {
-							markList[i] = false
-						}
 
-					}
-				}
-			}
-		}
+	if len(d.VAlgo) != 0 { // nolint: nestif
+		// need verify algorithm check
+		d.verifyAlgo(in, markList)
 	}
+
 	for i, need := range markList {
 		if need {
 			out = append(out, in[i])
 		}
 	}
+
 	return out
 }
 
+// verifyAlgo verify algorithm check
+func (d *Detector) verifyAlgo(in []*header.DetectResult, markList []bool) []bool {
+	for i, res := range in {
+		if !markList[i] {
+			continue
+		}
+
+		for _, algo := range d.VAlgo {
+			switch algo {
+			case VerifyAlgoIDCard:
+				if !d.verifyByIDCard(res) { // check failed
+					markList[i] = false
+				}
+			case VerifyAlgoAbaRouting:
+				if !d.verifyByABARouting(res) {
+					markList[i] = false
+				}
+			case VerifyAlgoCreditCard:
+				if !d.verifyByCreditCard(res) {
+					markList[i] = false
+				}
+			case VerifyAlgoBitcoin:
+				if !d.verifyByBitCoin(res) {
+					markList[i] = false
+				}
+			case VerifyAlgoDomain:
+				if !d.verifyByDomain(res) {
+					markList[i] = false
+				}
+			}
+		}
+	}
+
+	return markList
+}
+
 // verifyByContext check around context to decide whether res is accuracy
-func (I *Detector) verifyByContext(inputBytes []byte, res *header.DetectResult) bool {
+func (d *Detector) verifyByContext(inputBytes []byte, res *header.DetectResult) bool {
 	st := res.ByteStart - DefContextRange
 	if st < 0 {
 		st = 0
@@ -512,14 +565,14 @@ func (I *Detector) verifyByContext(inputBytes []byte, res *header.DetectResult) 
 	subInput := inputBytes[st:ed]
 	// to lower
 	subInput = bytes.ToLower(subInput)
-	for _, word := range I.CDict {
+	for _, word := range d.CDict {
 		if len(word) == 0 {
 			continue
 		}
 		wordBytes := []byte(strings.ToLower(word))
 		pos := bytes.Index(subInput, wordBytes)
 		for start := 0; pos != -1; pos = bytes.Index(subInput[start:], wordBytes) {
-			if I.isWholeWord(subInput[start:], wordBytes, pos) {
+			if d.isWholeWord(subInput[start:], wordBytes, pos) {
 				return true
 			}
 			start += pos + len(word)
@@ -527,7 +580,7 @@ func (I *Detector) verifyByContext(inputBytes []byte, res *header.DetectResult) 
 	}
 
 	var found bool
-	for _, re := range I.CReg {
+	for _, re := range d.CReg {
 		if re.Match(subInput) {
 			found = true
 			break
@@ -538,7 +591,7 @@ func (I *Detector) verifyByContext(inputBytes []byte, res *header.DetectResult) 
 }
 
 // isWholeWord checks whether word which is found in input is a whole word
-func (I *Detector) isWholeWord(in []byte, word []byte, pos int) bool {
+func (d *Detector) isWholeWord(in []byte, word []byte, pos int) bool {
 	if pos == -1 {
 		return false
 	}
@@ -564,25 +617,25 @@ func (I *Detector) isWholeWord(in []byte, word []byte, pos int) bool {
 	if leftSz == 0 {
 		if rightSz == 0 {
 			return true
-		} else {
-			return !I.isLetter(right)
 		}
-	} else {
-		if rightSz == 0 {
-			return !I.isLetter(left)
-		} else {
-			return !I.isLetter(left) && !I.isLetter(right)
-		}
+
+		return !d.isLetter(right)
 	}
+
+	if rightSz == 0 {
+		return !d.isLetter(left)
+	}
+
+	return !d.isLetter(left) && !d.isLetter(right)
 }
 
 // isLetter checks whether r is a-zA-z
-func (I *Detector) isLetter(r rune) bool {
+func (d *Detector) isLetter(r rune) bool {
 	return (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z')
 }
 
 // verifyByIDCard checks whether result is IDCard
-func (I *Detector) verifyByIDCard(res *header.DetectResult) bool {
+func (d *Detector) verifyByIDCard(res *header.DetectResult) bool {
 	idCard := res.Text
 	sz := len(idCard)
 	if sz != DefIDCardLength { // length check failed
@@ -661,7 +714,7 @@ func (a *a25) Set58(s []byte) error {
 // if it can be decoded into a 25 byte address, the version number is 0,
 // and the checksum validates.  Return value ok will be true for valid
 // addresses.  If ok is false, the address is invalid.
-func (I *Detector) verifyByBitCoin(res *header.DetectResult) bool {
+func (d *Detector) verifyByBitCoin(res *header.DetectResult) bool {
 	a58 := []byte(res.Text)
 	var a a25
 	if err := a.Set58(a58); err != nil {
@@ -674,7 +727,7 @@ func (I *Detector) verifyByBitCoin(res *header.DetectResult) bool {
 }
 
 // verifyByCreditCard verifies credit card
-func (I *Detector) verifyByCreditCard(res *header.DetectResult) bool {
+func (d *Detector) verifyByCreditCard(res *header.DetectResult) bool {
 	patternText := res.Text
 	sanitizedValue := strings.Replace(patternText, "-", "", -1)
 	numberLen := len(sanitizedValue)
@@ -701,7 +754,7 @@ func (I *Detector) verifyByCreditCard(res *header.DetectResult) bool {
 }
 
 // verifyByABARouting checks whether result is aba routing
-func (I *Detector) verifyByABARouting(res *header.DetectResult) bool {
+func (d *Detector) verifyByABARouting(res *header.DetectResult) bool {
 	patternText := res.Text
 	sanitizedValue := strings.Replace(patternText, "-", "", -1)
 	numberLen := len(sanitizedValue)
@@ -718,7 +771,7 @@ func (I *Detector) verifyByABARouting(res *header.DetectResult) bool {
 }
 
 // verifyByDomain checks whether result is domain
-func (I *Detector) verifyByDomain(res *header.DetectResult) bool {
+func (d *Detector) verifyByDomain(res *header.DetectResult) bool {
 	// Original top-level domains
 	// https://en.wikipedia.org/wiki/List_of_Internet_top-level_domains#ICANN-era_generic_top-level_domains
 	b64SuffixList := "LmJpenwuY29tfC5vcmd8Lm5ldHwuZWR1fC5nb3Z8LmludHwubWlsfC5hcnBhfC5pbmZvfC5wcm98LmNvb3B8LmFlcm98Lm5" +
@@ -748,7 +801,7 @@ func (I *Detector) verifyByDomain(res *header.DetectResult) bool {
 }
 
 // getLastKey extracts last key from path
-func (I *Detector) getLastKey(path string) (string, bool) {
+func (d *Detector) getLastKey(path string) (string, bool) {
 	sz := len(path)
 	if path[sz-1] == ']' { // path likes key[n]
 		ed := strings.LastIndexByte(path, '[')

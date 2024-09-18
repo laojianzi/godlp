@@ -1,6 +1,7 @@
 package logger
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 )
@@ -8,7 +9,7 @@ import (
 type defaultLogger struct{}
 
 func (d defaultLogger) SetLevel(level Level) {
-	slog.Default().Enabled(nil, slog.Level(level))
+	slog.Default().Enabled(context.Background(), slog.Level(level))
 }
 
 func (d defaultLogger) Debugf(format string, args ...interface{}) {

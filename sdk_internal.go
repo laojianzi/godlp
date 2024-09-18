@@ -101,10 +101,10 @@ func (I *Engine) isDebugMode() bool {
 // in release mode, log level is ERROR and log message will be printed into stderr
 func (I *Engine) initLogger() error {
 	if I.isDebugMode() {
-		// logger.SetLevel(0)
+		logger.SetLevel(logger.LevelDebug)
 		logger.Debugf("DLP@%s run in debug mode", I.Version)
 	} else { // release mode
-		// logger.SetLevel(log.LevelError)
+		logger.SetLevel(logger.LevelError)
 	}
 	return nil
 }
@@ -122,9 +122,11 @@ func (I *Engine) loadDetector() error {
 // loadMaskWorker loads mask worker from config
 func (I *Engine) loadMaskWorker() error {
 	maskRuleList := I.confObj.MaskRules
+
 	if I.maskerMap == nil {
 		I.maskerMap = make(map[string]mask.API)
 	}
+
 	for _, rule := range maskRuleList {
 		if obj, err := mask.NewWorker(rule, I); err == nil {
 			ruleName := obj.GetRuleName()
@@ -143,50 +145,52 @@ func (I *Engine) loadMaskWorker() error {
 // in DeIdentifyJSON(), isDeIdentify is true, kvMap is read only, will store path and MaskText of sensitive information
 func (I *Engine) dfsJSON(path string, ptr *interface{}, kvMap map[string]string, isDeIdentify bool) interface{} {
 	path = strings.ToLower(path)
-	switch (*ptr).(type) {
+
+	switch iv := (*ptr).(type) {
 	case map[string]interface{}:
-		for k, v := range (*ptr).(map[string]interface{}) {
+		for k, v := range iv {
 			subPath := path + "/" + k
-			(*ptr).(map[string]interface{})[k] = I.dfsJSON(subPath, &v, kvMap, isDeIdentify)
+			iv[k] = I.dfsJSON(subPath, &v, kvMap, isDeIdentify)
 		}
 	case []interface{}:
-		for i, v := range (*ptr).([]interface{}) {
+		for i, v := range iv {
 			subPath := ""
 			if len(path) == 0 {
 				subPath = fmt.Sprintf("/[%d]", i)
 			} else {
 				subPath = fmt.Sprintf("%s[%d]", path, i)
 			}
-			(*ptr).([]interface{})[i] = I.dfsJSON(subPath, &v, kvMap, isDeIdentify)
+			iv[i] = I.dfsJSON(subPath, &v, kvMap, isDeIdentify)
 		}
 	case string:
 		var subObj interface{}
-		if val, ok := (*ptr).(string); ok {
-			// try nested json Unmarshal
-			if I.maybeJSON(val) {
-				if err := json.Unmarshal([]byte(val), &subObj); err == nil {
-					obj := I.dfsJSON(path, &subObj, kvMap, isDeIdentify)
-					if ret, err := json.Marshal(obj); err == nil {
-						retStr := string(ret)
-						return retStr
-					} else {
-						return obj
-					}
-				}
-			} else { // plain text
-				if isDeIdentify {
-					if kvMask, ok := kvMap[path]; ok {
-						return kvMask
-					} else {
-						return val
-					}
-				} else {
-					kvMap[path] = val
-					return val
-				}
+		// try nested json Unmarshal
+		if I.maybeJSON(iv) {
+			if err := json.Unmarshal([]byte(iv), &subObj); err != nil {
+				break
 			}
+
+			obj := I.dfsJSON(path, &subObj, kvMap, isDeIdentify)
+			if ret, err := json.Marshal(obj); err == nil {
+				return string(ret)
+			}
+
+			return obj
 		}
+
+		// plain text
+		if isDeIdentify {
+			if kvMask, ok := kvMap[path]; ok {
+				return kvMask
+			}
+
+			return iv
+		}
+
+		kvMap[path] = iv
+		return iv
 	}
+
 	return *ptr
 }
 
@@ -204,6 +208,7 @@ func (I *Engine) selectRulesForLog() error {
 
 func (I *Engine) fillDetectorMap() error {
 	ruleList := I.confObj.Rules
+
 	if I.detectorMap == nil {
 		I.detectorMap = make(map[int32]detector.API)
 	}
@@ -237,6 +242,8 @@ func (I *Engine) fillDetectorMap() error {
 
 // disableRules will disable rules based on ruleList, pass them all
 // 禁用规则，原子操作，每次禁用是独立操作，不会有历史依赖
+//
+// nolint: unused
 func (I *Engine) applyDisableRules(ruleList []int32) {
 	I.confObj.Global.DisableRules = ruleList
 	_ = I.loadDetector()
