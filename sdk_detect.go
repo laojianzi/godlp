@@ -318,6 +318,10 @@ func (a ResultList) Less(i, j int) bool {
 
 // Contain checks whether a[i] contains a[j]
 func (a ResultList) Contain(i, j int) bool {
+	if a[i].InfoType == header.ADDRESS && a[j].InfoType == header.ADDRESS {
+		return a[i].ByteStart <= a[j].ByteStart && a[j].ByteEnd <= a[i].ByteEnd
+	}
+
 	return a[i].Key == a[j].Key && a[i].ByteStart <= a[j].ByteStart && a[j].ByteEnd <= a[i].ByteEnd
 }
 
@@ -368,12 +372,8 @@ func (I *Engine) mergeResults(a []*header.DetectResult, b []*header.DetectResult
 				break
 			}
 
-			if ResultList(total).Contain(i, j) {
+			if ResultList(total).Contain(i, j) || ResultList(total).Contain(j, i) {
 				mark[j] = false
-			}
-
-			if ResultList(total).Contain(j, i) {
-				mark[i] = false
 			}
 		}
 	}

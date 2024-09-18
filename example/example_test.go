@@ -38,6 +38,7 @@ mac地址 06-06-06-aa-bb-cc
 
 	logger.Debugf("\t1. Detect( inStr: %s )\n", inStr)
 	eng.ShowResults(results)
+	logger.Debugf("\n")
 	outStr, _, err := eng.DeIdentify(inStr)
 	if err != nil {
 		panic(err)
@@ -216,8 +217,9 @@ mac地址 06-06-06-aa-bb-cc
 	// mac地址 06-06-06-aa-bb-cc
 	// 收件人：张真人  手机号码：18612341234 )
 	//
-	//	Total Results: 7
-	// [{"rule_id":1,"text":"18612341234","mask_text":"186******34","result_type":"VALUE","key":"","byte_start":30,"byte_end":41,"info_type":"PHONE","en_name":"telephone_number","cn_name":"电话号码","group_name":"","level":"L4","ext_info":{"CnGroup":"用户数据","EnGroup":"user_data"}},{"rule_id":1,"text":"18612341234","mask_text":"186******34","result_type":"VALUE","key":"","byte_start":198,"byte_end":209,"info_type":"PHONE","en_name":"telephone_number","cn_name":"电话号码","group_name":"","level":"L4","ext_info":{"CnGroup":"用户数据","EnGroup":"user_data"}},{"rule_id":2,"text":"abcd@abcd.com","mask_text":"a***@********","result_type":"VALUE","key":"","byte_start":15,"byte_end":28,"info_type":"EMAIL","en_name":"EMAIL_address","cn_name":"电子邮箱","group_name":"","level":"L4","ext_info":{"CnGroup":"用户数据","EnGroup":"user_data"}},{"rule_id":8,"text":"我家住在北京市海淀区北三环西路43号","mask_text":"我家住在北京市海淀区北三环西路**号","result_type":"VALUE","key":"","byte_start":80,"byte_end":130,"info_type":"ADDRESS","en_name":"address_cn","cn_name":"中文地址","group_name":"","level":"L1","ext_info":{"CnGroup":"用户数据","EnGroup":"user_data"}},{"rule_id":8,"text":"淀区北三环西路43号,","mask_text":"淀区北三环西路**号,","result_type":"VALUE","key":"","byte_start":104,"byte_end":131,"info_type":"ADDRESS","en_name":"address_cn","cn_name":"中文地址","group_name":"","level":"L1","ext_info":{"CnGroup":"用户数据","EnGroup":"user_data"}},{"rule_id":9,"text":"张真人","mask_text":"张******","result_type":"VALUE","key":"收件人","byte_start":172,"byte_end":181,"info_type":"NAME","en_name":"name","cn_name":"人名","group_name":"","level":"L4","ext_info":{"CnGroup":"用户数据","EnGroup":"user_data"}},{"rule_id":10,"text":"06-06-06-aa-bb-cc","mask_text":"06-06-06-**-**-**","result_type":"VALUE","key":"","byte_start":142,"byte_end":159,"info_type":"MACADDR","en_name":"MAC_address","cn_name":"MAC地址","group_name":"","level":"L3","ext_info":{"CnGroup":"用户数据","EnGroup":"user_data"}}]
+	//	Total Results: 6
+	// [{"rule_id":1,"text":"18612341234","mask_text":"186******34","result_type":"VALUE","key":"","byte_start":30,"byte_end":41,"info_type":"PHONE","en_name":"telephone_number","cn_name":"电话号码","group_name":"","level":"L4","ext_info":{"CnGroup":"用户数据","EnGroup":"user_data"}},{"rule_id":1,"text":"18612341234","mask_text":"186******34","result_type":"VALUE","key":"","byte_start":198,"byte_end":209,"info_type":"PHONE","en_name":"telephone_number","cn_name":"电话号码","group_name":"","level":"L4","ext_info":{"CnGroup":"用户数据","EnGroup":"user_data"}},{"rule_id":2,"text":"abcd@abcd.com","mask_text":"a***@********","result_type":"VALUE","key":"","byte_start":15,"byte_end":28,"info_type":"EMAIL","en_name":"EMAIL_address","cn_name":"电子邮箱","group_name":"","level":"L4","ext_info":{"CnGroup":"用户数据","EnGroup":"user_data"}},{"rule_id":8,"text":"我家住在北京市海淀区北三环西路43号","mask_text":"我家住在北京市海淀区北三环西路**号","result_type":"VALUE","key":"","byte_start":80,"byte_end":130,"info_type":"ADDRESS","en_name":"address_cn","cn_name":"中文地址","group_name":"","level":"L1","ext_info":{"CnGroup":"用户数据","EnGroup":"user_data"}},{"rule_id":9,"text":"张真人","mask_text":"张******","result_type":"VALUE","key":"收件人","byte_start":172,"byte_end":181,"info_type":"NAME","en_name":"name","cn_name":"人名","group_name":"","level":"L4","ext_info":{"CnGroup":"用户数据","EnGroup":"user_data"}},{"rule_id":10,"text":"06-06-06-aa-bb-cc","mask_text":"06-06-06-**-**-**","result_type":"VALUE","key":"","byte_start":142,"byte_end":159,"info_type":"MACADDR","en_name":"MAC_address","cn_name":"MAC地址","group_name":"","level":"L3","ext_info":{"CnGroup":"用户数据","EnGroup":"user_data"}}]
+	//
 	//	2. DeIdentify( inStr: 我的邮件是abcd@abcd.com,
 	// 18612341234是我的电话
 	// 你家住在哪里啊? 我家住在北京市海淀区北三环西路43号,
@@ -225,7 +227,7 @@ mac地址 06-06-06-aa-bb-cc
 	// 收件人：张真人  手机号码：18612341234 )
 	//	outStr: 我的邮件是a***@********,
 	// 186******34是我的电话
-	// 你家住在哪里啊? 我家住在北京市海淀区北三环西路**号淀区北三环西路**号,
+	// 你家住在哪里啊? 我家住在北京市海淀区北三环西路**号,
 	// mac地址 06-06-06-**-**-**
 	// 收件人：张******  手机号码：186******34
 	//

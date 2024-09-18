@@ -22,6 +22,7 @@ func (I *Engine) DeIdentify(inputText string) (outputText string, retResults []*
 	if I.isOnlyForLog() {
 		return inputText, nil, header.ErrOnlyForLog
 	}
+
 	if len(inputText) > DefMaxInput {
 		return inputText, nil, fmt.Errorf("DefMaxInput: %d , %w", DefMaxInput, header.ErrMaxInputLimit)
 	}

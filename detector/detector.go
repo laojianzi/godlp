@@ -130,6 +130,10 @@ func (d *Detector) DetectBytes(inputBytes []byte) ([]*header.DetectResult, error
 	for _, reObj := range d.VReg {
 		if ret, err := d.regexDetectBytes(reObj, inputBytes); err == nil {
 			results = append(results, ret...)
+			if d.rule.InfoType == header.ADDRESS { // Avoid duplicate address types
+				break
+			}
+
 			continue
 		}
 
