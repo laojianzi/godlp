@@ -13,7 +13,7 @@ lint:
 	@golangci-lint run ./...
 
 test: 
-	@go test ./... -v -race -failfast  -count=1 -timeout 10s
+	@go test ./... -v -race -failfast -shuffle=on -count=1 -timeout 10s
 
 bench: 
 	@go test ./... -bench=. -benchtime=3s -benchmem
