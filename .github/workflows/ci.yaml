@@ -43,3 +43,16 @@ jobs:
           file: cover.out
           format: golang
           fail-on-error: false
+          flag-name: run-${{ join(matrix.*, '-') }}
+          parallel: true
+
+  coveralls-report:
+    needs: workflow
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Coveralls Finished
+        uses: coverallsapp/github-action@v2
+        with:
+          parallel-finished: true
+          carryforward: "run-1.18.x-ubuntu-latest,run-1.19.x-ubuntu-latest,run-1.20.x-ubuntu-latest,run-1.21.x-ubuntu-latest,run-1.22.x-ubuntu-latest"

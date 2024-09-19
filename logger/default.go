@@ -1,29 +1,53 @@
 package logger
 
 import (
-	"context"
-	"fmt"
-	"log/slog"
+	"os"
+
+	"github.com/rs/zerolog"
 )
 
-type defaultLogger struct{}
+type defaultLogger struct {
+	log zerolog.Logger
+}
+
+func NewDefaultLogger() Logger {
+	emptyFormat := func(i interface{}) string {
+		return ""
+	}
+	return &defaultLogger{log: zerolog.New(zerolog.ConsoleWriter{
+		Out:             os.Stdout,
+		FormatLevel:     emptyFormat,
+		FormatTimestamp: emptyFormat,
+	}).With().Logger()}
+}
 
 func (d defaultLogger) SetLevel(level Level) {
-	slog.Default().Enabled(context.Background(), slog.Level(level))
+	switch level {
+	case LevelDebug:
+		d.log.Level(zerolog.DebugLevel)
+	case LevelInfo:
+		d.log.Level(zerolog.InfoLevel)
+	case LevelWarn:
+		d.log.Level(zerolog.WarnLevel)
+	case LevelError:
+		d.log.Level(zerolog.ErrorLevel)
+	default:
+		d.log.Level(zerolog.DebugLevel) // default use debug level
+	}
 }
 
 func (d defaultLogger) Debugf(format string, args ...interface{}) {
-	slog.Debug(fmt.Sprintf(format, args...))
+	d.log.Debug().Msgf(format, args...)
 }
 
 func (d defaultLogger) Infof(format string, args ...interface{}) {
-	slog.Info(fmt.Sprintf(format, args...))
+	d.log.Info().Msgf(format, args...)
 }
 
 func (d defaultLogger) Warnf(format string, args ...interface{}) {
-	slog.Warn(fmt.Sprintf(format, args...))
+	d.log.Warn().Msgf(format, args...)
 }
 
 func (d defaultLogger) Errorf(format string, args ...interface{}) {
-	slog.Error(fmt.Sprintf(format, args...))
+	d.log.Error().Msgf(format, args...)
 }
