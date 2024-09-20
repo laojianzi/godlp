@@ -130,7 +130,7 @@ func (d *Detector) DetectBytes(inputBytes []byte) ([]*header.DetectResult, error
 	for _, reObj := range d.VReg {
 		if ret, err := d.regexDetectBytes(reObj, inputBytes); err == nil {
 			results = append(results, ret...)
-			if d.rule.InfoType == header.ADDRESS { // Avoid duplicate address types
+			if len(ret) > 0 && d.rule.InfoType == header.ADDRESS { // Avoid duplicate address types
 				break
 			}
 
@@ -157,16 +157,14 @@ func (d *Detector) DetectMap(inputMap map[string]string) ([]*header.DetectResult
 	results := make([]*header.DetectResult, 0)
 
 	// (KReg || KDict) && (VReg || VDict)
-	item := &KVItem{
-		Start: 0,
-		End:   0,
-	}
+	item := &KVItem{Start: 0, End: 0}
 	for inK, inV := range inputMap {
 		item.Key = inK
 		item.Value = inV
 		d.doDetectKV(item, &results)
 	}
-	return results, nil
+
+	return d.filter(results), nil
 }
 
 // DetectList detects for List
@@ -177,12 +175,14 @@ func (d *Detector) DetectList(kvList []*KVItem) ([]*header.DetectResult, error) 
 	for i := 0; i < length; i++ {
 		d.doDetectKV(kvList[i], &results)
 	}
-	return results, nil
+
+	return d.filter(results), nil
 }
 
 func (d *Detector) doDetectKV(kvItem *KVItem, results *[]*header.DetectResult) {
 	// inK may be a path of json object
 	lastKey, ifExtracted := d.getLastKey(kvItem.Key)
+	resultType := ResultTypeValue
 	if d.IsKV() { // nolint: nestif
 		// key rules check
 		// Dict rules first, then regex rule
@@ -209,41 +209,30 @@ func (d *Detector) doDetectKV(kvItem *KVItem, results *[]*header.DetectResult) {
 			if res, err := d.createKVResult(kvItem.Key, kvItem.Value); err == nil {
 				res.ByteStart += kvItem.Start
 				res.ByteEnd += kvItem.Start
-				*results = append(*results, res)
+				*results = append(*results, d.verify([]byte(kvItem.Value), []*header.DetectResult{res})...)
 			}
 
 			return
 		}
 
-		// check value rule
-		if vResults, err := d.DetectBytes([]byte(kvItem.Value)); err == nil {
-			for _, res := range vResults {
-				// convert VALUE result into KV result
-				res.ResultType = ResultTypeKv
-				res.Key = kvItem.Key
-				res.ByteStart += kvItem.Start
-				res.ByteEnd += kvItem.Start
-				*results = append(*results, res)
-			}
-		}
-
-		return
+		resultType = ResultTypeKv
 	}
 
-	// only value rule
 	vResults, err := d.DetectBytes([]byte(kvItem.Value))
 	if err != nil {
 		return
 	}
 
-	for _, res := range vResults {
-		// use VALUE because value rule
-		res.ResultType = ResultTypeValue
+	vNewResults := make([]*header.DetectResult, len(vResults))
+	for i, res := range vResults {
+		res.ResultType = resultType
 		res.Key = kvItem.Key
 		res.ByteStart += kvItem.Start
 		res.ByteEnd += kvItem.Start
-		*results = append(*results, res)
+		vNewResults[i] = res
 	}
+
+	*results = append(*results, d.verify([]byte(kvItem.Value), vNewResults)...)
 }
 
 // Close release detector object
@@ -426,20 +415,8 @@ func (d *Detector) filter(in []*header.DetectResult) []*header.DetectResult {
 	out := make([]*header.DetectResult, 0, DefResultSize)
 	for i := range in {
 		res := in[i]
-		var found bool
-		for _, filterFn := range []func(string) bool{
-			d.filterBDict,
-			d.filterBReg,
-			d.filterBAlgo,
-		} {
-			found = filterFn(res.Text)
-			if found {
-				break
-			}
-		}
-
-		if found {
-			break
+		if d.filterBDict(res.Text) || d.filterBReg(res.Text) || d.filterBAlgo(res.Text) {
+			continue
 		}
 
 		out = append(out, res)
@@ -474,7 +451,7 @@ func (d *Detector) filterBAlgo(text string) bool {
 	for _, algo := range d.BAlgo {
 		switch algo {
 		case BlacklistAlgoMasked:
-			if d.isMasked(text) {
+			if IsMasked(text) {
 				return true
 			}
 		}
@@ -483,8 +460,8 @@ func (d *Detector) filterBAlgo(text string) bool {
 	return false
 }
 
-// isMasked checks input whether contain * or #
-func (d *Detector) isMasked(in string) bool {
+// IsMasked checks input whether contain * or #
+func IsMasked(in string) bool {
 	pos := strings.IndexAny(in, MaskedCharList)
 	return pos != -1 // found mask char
 }
@@ -505,7 +482,7 @@ func (d *Detector) verify(inputBytes []byte, in []*header.DetectResult) []*heade
 		}
 	}
 
-	if len(d.VAlgo) != 0 { // nolint: nestif
+	if len(d.VAlgo) != 0 {
 		// need verify algorithm check
 		d.verifyAlgo(in, markList)
 	}
